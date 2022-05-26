@@ -10,7 +10,6 @@ import { Button, Box, CircularProgress } from '@material-ui/core';
 import { connect } from 'react-redux';
 import { saveMedia } from '../store/action/user';
 import { Alert, Stack } from '@mui/material';
-import FilerobotImageEditor,{ TABS, TOOLS } from 'react-filerobot-image-editor';
 
 const baseStyle = {
   flex: 1,
@@ -80,9 +79,7 @@ function StyledDropzone(props) {
   let [boxMessage, setboxMessage] = useState('');
   let [color, setcolor] = useState('success');
   const [disableButton, setDisableButton] = useState(true);
-  const [openEditor, setopenEditor] = useState(false);
   // const [inactive, setinactive] = useState(false);
-  const [editedImage, seteditedImage] = useState({});
 
   const {
     getRootProps,
@@ -122,25 +119,23 @@ function StyledDropzone(props) {
     </div>
   ));
   console.log(props);
-  // useEffect(
-  //   () => () => {
-  //     // Make sure to revoke the data uris to avoid memory leaks
-  //     files.forEach((file) => URL.revokeObjectURL(file.preview));
-  //   },
-  //   [files]
-  // );
+  useEffect(
+    () => () => {
+      // Make sure to revoke the data uris to avoid memory leaks
+      files.forEach((file) => URL.revokeObjectURL(file.preview));
+    },
+    [files]
+  );
 
   function saveMediaData() {
     console.log('running saveMediaData');
 
     const formdata = new FormData();
-    
+
     files.forEach((i) => {
       console.log(i);
       formdata.append('Media', i);
     });
-
-    // formdata.append('Media',editedImage);
 
     setDisable(true);
     props.saveMedia(formdata, (err) => {
@@ -164,36 +159,6 @@ function StyledDropzone(props) {
 
   return (
     <div className="container">
-      {openEditor && (
-        <FilerobotImageEditor
-          source={files[0].preview}
-          tabsIds={[TABS.ADJUST, TABS.ANNOTATE]}
-          defaultTabId={TABS.ANNOTATE}
-          defaultToolId={TOOLS.TEXT}
-          Text={{ text: 'Hello World' }}
-          onSave={(editedImageObject, designState) => {
-            console.log('saved', editedImageObject, designState);
-            seteditedImage(designState);
-            setopenEditor(false)
-            files.push(editedImageObject);
-          }}
-          onClose={() => setopenEditor(false)}
-          defaultSavedImageName={files[0].name}
-          defaultSavedImageType={files[0].type.split('/')[1]}
-          moreSaveOptions={[
-            {
-              label: 'Save as new version',
-              onClick: (triggerSaveModal, triggerSave) => triggerSaveModal((...args) => {console.log('saved', args)}), // Required to pass the callback function
-              icon: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">...</svg>', // HTML Element as string
-            },
-            {
-              label: 'Save as new file',
-              onClick: (triggerSaveModal, triggerSave) => triggerSave((...args) => {console.log('saved', args)}),  // Required to pass the callback function
-              icon: () => <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">...</svg>, // React Function component
-            },
-          ]}
-        />
-      )}
       <Helmet>
         <title>Add Media | Ideogram</title>
       </Helmet>
@@ -222,17 +187,6 @@ function StyledDropzone(props) {
           }}
         >
           Upload Media
-        </Button>
-        <Button
-          color="primary"
-          size="large"
-          variant="contained"
-          onClick={() => {
-            setopenEditor(true);
-          }}
-          sx={{ m: 1 }}
-        >
-          Edit Media
         </Button>
       </Box>
     </div>

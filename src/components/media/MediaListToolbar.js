@@ -27,6 +27,7 @@ const MediaListToolbar = (props) => (
         sx={{ mx: 1 }}
         color="primary"
         variant="contained"
+        href="createmedia"
       >
         Create Media
       </Button>
