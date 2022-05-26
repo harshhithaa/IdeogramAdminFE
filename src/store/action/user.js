@@ -261,7 +261,6 @@ export const logoutUser = (callback) => (dispatch) => {
 
 export const saveMedia = (data, callback) => (dispatch) => {
   const token = store.getState().root.user.accesstoken;
-  console.log(token);
   try {
     Api.post('/admin/savemedia', data, {
       headers: {
