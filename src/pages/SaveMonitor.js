@@ -49,6 +49,7 @@ const SaveMonitorDetails = (props) => {
   const [selectedSchedule, setSelectedSchedule] = useState((state && state.ScheduleRef)||'');
   const [loader, setloader] = useState(true);
   const [scheduleloader, setScheduleloader] = useState(true);
+  const [selectedOrientation, setSelectedOrientation] = useState("0");
   const [type, settype] = useState((state && state.type==="View"?'View':state && state.type==="Edit"?'Update':'Create') );
   let [box, setbox] = useState(false);
   let [boxMessage, setboxMessage] = useState("");
@@ -56,6 +57,7 @@ const SaveMonitorDetails = (props) => {
   const [checked, setChecked] = useState(false);
    // const [disable, setDisable] = useState([]);
   let days = (state &&state.Days&& state.Days.split(","))||[];
+  const orientations = ['0','90','180','270']
 
   useEffect(() => {
     const data = {
@@ -242,6 +244,21 @@ const SaveMonitorDetails = (props) => {
                   ) : (
                     <MenuItem>No Items available</MenuItem>
                   )}
+                </Select>
+                <InputLabel id="select-orientation">Select Orientation</InputLabel>
+                <Select 
+                labelId="select-orientation" 
+                id="select-orientation"
+                value={selectedOrientation}
+                label="orientation"
+                onChange={(e)=>{
+                  console.log('e.target.value', e.target.value);
+                  setSelectedOrientation(e.target.value);
+                }}
+                >
+                {orientations.map(value=>(
+                  <MenuItem value={value}>{value}</MenuItem>
+                ))}
                 </Select>
                 { box?        
        ( <Stack sx={{ width: '100%' }} spacing={2}>
