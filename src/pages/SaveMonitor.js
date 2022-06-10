@@ -49,7 +49,8 @@ const SaveMonitorDetails = (props) => {
   const [selectedSchedule, setSelectedSchedule] = useState((state && state.ScheduleRef)||'');
   const [loader, setloader] = useState(true);
   const [scheduleloader, setScheduleloader] = useState(true);
-  const [selectedOrientation, setSelectedOrientation] = useState("0");
+  const [selectedOrientation, setSelectedOrientation] = useState((state && state.Orientation) || '');
+  const [slideTime, setSlideTime] = useState((state && state.SlideTime) || '');
   const [type, settype] = useState((state && state.type==="View"?'View':state && state.type==="Edit"?'Update':'Create') );
   let [box, setbox] = useState(false);
   let [boxMessage, setboxMessage] = useState("");
@@ -58,6 +59,8 @@ const SaveMonitorDetails = (props) => {
    // const [disable, setDisable] = useState([]);
   let days = (state &&state.Days&& state.Days.split(","))||[];
   const orientations = ['0','90','180','270']
+  const min = 5;
+  const max = 60;
 
   useEffect(() => {
     const data = {
@@ -109,7 +112,9 @@ const SaveMonitorDetails = (props) => {
       Description: description,
       DefaultPlaylistRef: selectedPlaylist,
       ScheduleRef: selectedSchedule,
-      IsActive: 1
+      IsActive: 1,
+      Orientation: selectedOrientation,
+      SlideTime: slideTime
     };
     if(MonitorRef!=='')
     saveMonitorDetails.MonitorRef = MonitorRef;
@@ -260,6 +265,14 @@ const SaveMonitorDetails = (props) => {
                   <MenuItem value={value}>{value}</MenuItem>
                 ))}
                 </Select>
+                <InputLabel id="select-slide-interval">Select Slide Interval</InputLabel>
+                <TextField
+                type="number" 
+                id="select-slide-interval" 
+                value={slideTime}
+                inputProps={{min,max}} 
+                onChange={(e)=>{setSlideTime(e.target.value)}}
+                />
                 { box?        
        ( <Stack sx={{ width: '100%' }} spacing={2}>
       <Alert severity={color}>{boxMessage}</Alert>

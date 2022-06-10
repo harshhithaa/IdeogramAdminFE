@@ -72,7 +72,7 @@ export const getUserComponentList = (data, callback) => (dispatch) => {
         if (!res.data.Error) {
           const dataObj = res.data.Details;
 
-          console.log('dataObj', dataObj);
+          console.log('getUserComponentList', dataObj);
           if (data.componenttype === COMPONENTS.Monitor) {
             dispatch({
               type: GETUSERCOMPONENTLIST,
