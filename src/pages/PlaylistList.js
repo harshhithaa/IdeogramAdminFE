@@ -12,7 +12,7 @@ import PlaylistListToolbar from 'src/components/playlist/PlaylistListToolbar';
 import { connect } from 'react-redux';
 import { COMPONENTS } from 'src/utils/constant';
 
-import { getUserComponentList, deleteComponentList } from '../store/action/user';
+import { getUserComponentList, validateDeleteComponentList } from '../store/action/user';
 import { useNavigate } from 'react-router-dom';
 import {Alert, Stack} from '@mui/material';
 
@@ -23,6 +23,7 @@ const PlaylistList = (props) => {
   const [loader, setloader] = useState(false);
   const [selected, setselected] = useState([]);
   const [showmodal, setModal] = useState(false);
+  const [showErrModal, setErrModal] = useState(false);
   const [search, setsearch] = useState('');
   let [box, setbox] = useState(false);
   let [boxMessage, setboxMessage] = useState("");
@@ -64,16 +65,21 @@ let navigate = useNavigate()
     };
 
     console.log('selected', selected);
-    props.deleteComponentList(deleteData, (err) => {
-
-      if (err.exists) {       
-        setcolor('error');
-        setboxMessage(err.errmessage);
-        setbox(true);
-      } else {
-        console.log('Success');        
-        setplaylists(component.playlistList);
-        setloader(false);
+    props.validateDeleteComponentList(deleteData, (err) => {
+      if(err.err === 'attached'){
+        setErrModal(true)
+      }else{
+        props.deleteComponentList(deleteData, (err) =>{
+          if (err.exists) {       
+            setcolor('error');
+            setboxMessage(err.errmessage);
+            setbox(true);
+          } else {
+            console.log('Success');        
+            setplaylists(component.playlistList);
+            setloader(false);
+          }
+        })
       }
     });
   };
@@ -129,8 +135,33 @@ let navigate = useNavigate()
               </Grid>
             </Box>
           </Modal>
+
+          <Modal
+            open={showErrModal}
+            onClose={() => setErrModal(false)}
+            aria-labelledby="modal-modal-title"
+            aria-describedby="modal-modal-description"
+          >
+            <Box sx={style}>
+              <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
+                Cannot delete this playlist as it running in some schedule
+              </h4>
+              <Grid container spacing={1}>
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    onClick={() => setErrModal(false)}
+                  >
+                    Ok
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          </Modal>
           <PlaylistListToolbar onclick={() => setModal(true)}
           onsearch={(e)=>setsearch(e)}
+          selectedPlaylist={selected}
           />
          
           <Box sx={{ pt: 3 }}>
@@ -158,7 +189,7 @@ const mapStateToProps = ({ root = {} }) => {
 };
 const mapDispatchToProps = (dispatch) => ({
   getUserComponentList: (data, callback) => dispatch(getUserComponentList(data, callback)),
-  deleteComponentList: (data, callback) => dispatch(deleteComponentList(data, callback)),
+  validateDeleteComponentList: (data, callback) => dispatch(validateDeleteComponentList(data, callback)),
 
 });
 

@@ -20,7 +20,7 @@ const PlaylistToolbar = (props) => (
         justifyContent: 'flex-end'
       }}
     >
-      <Button sx={{ mx: 1 }} onClick={() => props.onclick()}>
+      <Button sx={{ mx: 1 }} onClick={() => props.onclick()} disabled={props.selectedPlaylist.length === 0}>
         <SvgIcon
           fontSize="small"
           color="action"

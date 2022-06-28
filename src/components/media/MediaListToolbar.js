@@ -17,7 +17,7 @@ const MediaListToolbar = (props) => (
         justifyContent: 'flex-end'
       }}
     >
-      <Button sx={{ mx: 1 }} onClick={() => props.onclick()}>
+      <Button sx={{ mx: 1 }} onClick={() => props.onclick()} disabled={props.selectedItems.length === 0}>
         <SvgIcon fontSize="small" color="action">
           <Trash2Icon />
         </SvgIcon>

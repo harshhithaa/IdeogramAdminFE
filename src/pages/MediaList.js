@@ -17,6 +17,7 @@ import MediaListToolbar from '../components/media/MediaListToolbar';
 import MediaGrid from '../components/media/MediaGrid';
 import {
   getUserComponentList,
+  validateDeleteComponentList,
   deleteComponentList
 } from '../store/action/user';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +28,7 @@ const MediaList = (props) => {
   const [loader, setLoader] = useState(false);
   const [selected, setselected] = useState([]);
   const [showmodal, setModal] = useState(false);
+  const [showErrModal, setErrModal] = useState(false);
 
   const navigate = useNavigate();
 
@@ -63,12 +65,19 @@ const MediaList = (props) => {
     };
     // console.log('delete medialist selected:', selected);
     setModal(false);
-    props.deleteComponentList(deleteData, (err) => {
-      if (err.exists) {
-        console.log(err.errmessage);
-      } else {
-        setLoader(false);
+    props.validateDeleteComponentList(deleteData, (err) => {
+      if(err.err === 'attached'){
+        setErrModal(true)
+      }else{
+        props.deleteComponentList(deleteData, (err) =>{
+          if (err.exists) {
+            console.log(err.errmessage);
+          } else {
+            setLoader(false);
+          }
+        })
       }
+
     });
   };
 
@@ -117,7 +126,31 @@ const MediaList = (props) => {
               </Grid>
             </Box>
           </Modal>
-          <MediaListToolbar onclick={() => setModal(true)} />
+
+          <Modal
+            open={showErrModal}
+            onClose={() => setErrModal(false)}
+            aria-labelledby="modal-modal-title"
+            aria-describedby="modal-modal-description"
+          >
+            <Box sx={style}>
+              <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
+                Cannot delete this media as it is running in some playlist
+              </h4>
+              <Grid container>
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    onClick={() => setErrModal(false)}
+                  >
+                    Ok
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          </Modal>
+          <MediaListToolbar selectedItems={selected} onclick={() => setModal(true)} />
 
           <MediaGrid media={mediaItem} setselected={setselected} />
         </Container>
@@ -135,7 +168,9 @@ const mapStateToProps = ({ root = {} }) => {
 const mapDispatchToProps = (dispatch) => ({
   getUserComponentList: (data, callback) =>
     dispatch(getUserComponentList(data, callback)),
-  deleteComponentList: (data, callback) =>
+    validateDeleteComponentList: (data, callback) =>
+    dispatch(validateDeleteComponentList(data, callback)),
+    deleteComponentList: (data, callback) =>
     dispatch(deleteComponentList(data, callback))
 });
 

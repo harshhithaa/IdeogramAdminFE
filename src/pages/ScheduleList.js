@@ -11,7 +11,7 @@ import { connect } from 'react-redux';
 import { COMPONENTS } from 'src/utils/constant';
 import {
   getUserComponentList,
-  deleteComponentList
+  validateDeleteComponentList
 } from '../store/action/user';
 import { useNavigate } from 'react-router-dom';
 
@@ -57,7 +57,7 @@ const ScheduleList = (props) => {
 
     console.log('selected', selected);
     setModal(false);
-    props.deleteComponentList(deleteData, (err) => {
+    props.validateDeleteComponentList(deleteData, (err) => {
       if (err.exists) {
         console.log(err.errmessage);
       } else {
@@ -142,8 +142,8 @@ const mapStateToProps = ({ root = {} }) => {
 const mapDispatchToProps = (dispatch) => ({
   getUserComponentList: (data, callback) =>
     dispatch(getUserComponentList(data, callback)),
-  deleteComponentList: (data, callback) =>
-    dispatch(deleteComponentList(data, callback))
+    validateDeleteComponentList: (data, callback) =>
+    dispatch(validateDeleteComponentList(data, callback))
 });
 
 export default connect(mapStateToProps, mapDispatchToProps)(ScheduleList);

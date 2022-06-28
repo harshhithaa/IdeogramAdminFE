@@ -297,6 +297,43 @@ export const saveMedia = (data, callback) => (dispatch) => {
   }
 };
 
+export const validateDeleteComponentList = (data, callback) => (dispatch) => {
+  const token = store.getState().root.user.accesstoken;
+
+  try {
+    Api.post('/admin/validatedeletecomponentlist', data, {
+      headers: {
+        'Content-Type': 'application/json',
+        AuthToken: token
+      }
+    })
+      .then((res) => {
+        if (!res.data.Error) {
+          if(res.data.Details.IsComponentDeletable){
+            dispatch({
+              type: DELETECOMPONENTLIST,
+              payload: false
+            });
+            callback({ exits: false });
+          }else{
+            callback({ exits: true, err: 'attached'})
+          }
+        } else {
+          if (res.data.Error.ErrorCode === 10002) {
+            // localStorage.clear();
+            this.props.history.push({ pathname: '/login' });
+          }
+          callback({ exits: true, err: res.data.Error.ErrorMessage });
+        }
+      })
+      .catch((errr) => {
+        callback({ exits: false, err: 'error', errr });
+      });
+  } catch (error) {
+    console.log(error);
+  }
+};
+
 export const deleteComponentList = (data, callback) => (dispatch) => {
   const token = store.getState().root.user.accesstoken;
 
