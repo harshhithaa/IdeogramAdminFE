@@ -29,7 +29,7 @@ const MediaList = (props) => {
   const [selected, setselected] = useState([]);
   const [showmodal, setModal] = useState(false);
   const [showErrModal, setErrModal] = useState(false);
-  const [playlists, setPlaylists] = useState('');
+  const [playlists, setPlaylists] = useState([]);
 
   const navigate = useNavigate();
 
@@ -71,7 +71,11 @@ const MediaList = (props) => {
         console.log(err);
       } else {
         if (err.err === 'attached') {
-          setPlaylists(err.playlistsAttached);
+          console.log(err.playlistsAttached)
+          // setPlaylists(err.playlistsAttached);
+          err.playlistsAttached.forEach((item)=>{
+            setPlaylists(prev=>[...prev,item.PlaylistName])
+          })
           setErrModal(true);
         } else {
           props.deleteComponentList(deleteData, (err) => {
@@ -140,7 +144,7 @@ const MediaList = (props) => {
           >
             <Box sx={style}>
               <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
-                Cannot delete this media as it is running in {playlists}{' '}
+                Cannot delete this media as it is running in {playlists.map(playlist=>(playlist))}{' '}
                 playlist
               </h4>
               <Grid container>
@@ -148,7 +152,7 @@ const MediaList = (props) => {
                   <Button
                     variant="contained"
                     color="success"
-                    onClick={() => setErrModal(false)}
+                    onClick={() => (setErrModal(false),setPlaylists([]))}
                   >
                     Ok
                   </Button>

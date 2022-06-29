@@ -321,7 +321,7 @@ export const validateDeleteComponentList = (data, callback) => (dispatch) => {
               exits: true,
               err: 'attached',
               playlistsAttached:
-                res.data.Details.ActiveComponents[0].PlaylistName
+                res.data.Details.ActiveComponents
             });
           }
         } else {
