@@ -98,6 +98,7 @@ export const getUserComponentList = (data, callback) => (dispatch) => {
         } else {
           if (res.data.Error.ErrorCode === ErrorCode.Invalid_User_Credentials) {
             localStorage.clear();
+            window.location.replace('/login');
           }
           console.log(
             'es.data.Error.ErrorMessage,',

@@ -22,6 +22,7 @@ const MonitorList = (props) => {
   const [search, setsearch] = useState('');
 
   let navigate = useNavigate();
+
   useEffect(() => {
     const data = {
       componenttype: COMPONENTS.Monitor
