@@ -30,7 +30,7 @@ import {
 import { COMPONENTS } from 'src/utils/constant';
 import { getUserComponentList, saveMonitor } from '../store/action/user';
 import { Alert, Stack } from '@mui/material';
-import { X as CloseIcon } from 'react-feather';
+import { X as CloseIcon, Plus } from 'react-feather';
 
 const SaveMonitorDetails = (props) => {
   const { component } = props || null;
@@ -75,9 +75,11 @@ const SaveMonitorDetails = (props) => {
   // const [disable, setDisable] = useState([]);
   let days = (state && state.Days && state.Days.split(',')) || [];
   const orientations = ['Portrait', 'Landscape'];
+  const [extraSchedule, setExtraSchedule] = useState([]);
   const min = 5;
   const max = 60;
   const step = 5;
+  var counter = 1;
 
   useEffect(() => {
     const data = {
@@ -144,6 +146,11 @@ const SaveMonitorDetails = (props) => {
       }
     });
   }
+
+  const handleAddSchedule = () => {
+    counter++;
+    setExtraSchedule((prev) => [...prev, counter]);
+  };
 
   return (
     <>
@@ -264,6 +271,46 @@ const SaveMonitorDetails = (props) => {
                     Clear
                   </Button>
                 </Box>
+                {extraSchedule.map(() => (
+                  <Box>
+                    <Select
+                      labelId="select-schedule"
+                      id="select-schedule"
+                      value={selectedSchedule}
+                      label="schedule"
+                      onChange={(e) => {
+                        console.log('e.target.value', e.target.value);
+                        setSelectedSchedule(e.target.value);
+                      }}
+                    >
+                      {scheduleData && scheduleData.length > 0 ? (
+                        scheduleData.map((item) => (
+                          <MenuItem value={item.ScheduleRef}>
+                            {`${item.Title}`}
+                          </MenuItem>
+                        ))
+                      ) : (
+                        <MenuItem>No Items available</MenuItem>
+                      )}
+                    </Select>
+                    <Button
+                      startIcon={<CloseIcon size={17} />}
+                      style={{ marginLeft: 10 }}
+                      onClick={() => {
+                        setSelectedSchedule(0);
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  </Box>
+                ))}
+                <Button
+                  startIcon={<Plus size={17} />}
+                  style={{ marginTop: 10 }}
+                  onClick={handleAddSchedule}
+                >
+                  Add Schedule
+                </Button>
                 <InputLabel id="select-orientation">
                   Select Orientation
                 </InputLabel>

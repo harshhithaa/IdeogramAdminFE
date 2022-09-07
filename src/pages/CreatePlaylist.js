@@ -14,7 +14,7 @@ import { connect } from 'react-redux';
 import { COMPONENTS } from 'src/utils/constant';
 import { IsValuePresentInArray } from 'src/utils/helperFunctions';
 import CardMedia from '@mui/material/CardMedia';
-import {Alert, Stack} from '@mui/material';
+import { Alert, Stack } from '@mui/material';
 
 import {
   Box,
@@ -52,8 +52,8 @@ const CreatePlaylist = (props) => {
   const [deletedplaylistMedia, setdeletedplaylistMedia] = useState([]);
 
   let [box, setbox] = useState(false);
-  let [boxMessage, setboxMessage] = useState("");
-  let [color, setcolor] = useState("success");
+  let [boxMessage, setboxMessage] = useState('');
+  let [color, setcolor] = useState('success');
   console.log(playlistMedia, 'playlistMedia');
   console.log(deletedplaylistMedia, 'deletedplaylistMedia');
   useEffect(() => {
@@ -64,16 +64,15 @@ const CreatePlaylist = (props) => {
     props.getUserComponentList(data, (err) => {
       if (err.exists) {
         console.log('err.errmessage', err.errmessage);
-       
       } else {
-        setMedia(component?component.mediaList:[]);
+        setMedia(component ? component.mediaList : []);
         setloader(true);
       }
     });
     setMediaData(media);
     let prevlist = [];
 
-      state &&
+    state &&
       state.Media &&
       state.Media.map((items) => {
         if (items.IsActive == 1)
@@ -82,13 +81,10 @@ const CreatePlaylist = (props) => {
             IsActive: 1
           });
       });
-      setplaylistMedia(prevlist)
+    setplaylistMedia(prevlist);
     //  console.log('outside', data);
     console.log('props', prevlist);
-
-    
   }, [loader]);
-
 
   function handleSelectPlaylist(item) {
     if (
@@ -105,9 +101,8 @@ const CreatePlaylist = (props) => {
 
       setdeletedplaylistMedia((prev) => [...deletedarr]);
 
-      setpriority(priority+1);
+      setpriority(priority + 1);
     } else {
-
       setdeletedplaylistMedia((prev) => [
         ...prev,
         { MediaRef: item.MediaRef, IsActive: 0 }
@@ -123,21 +118,19 @@ const CreatePlaylist = (props) => {
   }
 
   function handlePriority(mediaRef) {
-     var priorityIndex=  playlistMedia.findIndex(i => i.MediaRef === mediaRef)+1;
+    var priorityIndex =
+      playlistMedia.findIndex((i) => i.MediaRef === mediaRef) + 1;
 
-     if (priorityIndex>0) {
-       return priorityIndex;       
-     } else return '';
-
-    
+    if (priorityIndex > 0) {
+      return priorityIndex;
+    } else return '';
   }
-
 
   function savePlaylistDetails() {
     const savePlaylistData = {
       PlaylistName: title,
       Description: description,
-      Playlist: [...playlistMedia,...deletedplaylistMedia],
+      Playlist: [...playlistMedia, ...deletedplaylistMedia],
       IsActive: 1
     };
     if (id !== '') savePlaylistData.PlaylistRef = id;
@@ -150,7 +143,6 @@ const CreatePlaylist = (props) => {
         setboxMessage(err.errmessage);
         setbox(true);
       } else {
-
         navigate('/app/playlists', { replace: true });
         // setloader(!loader);
       }
@@ -162,10 +154,11 @@ const CreatePlaylist = (props) => {
       <Helmet>
         <title>Create Playlist | Ideogram</title>
       </Helmet>
-      { box?        
-       ( <Stack sx={{ width: '100%' }} spacing={2}>
-      <Alert severity={color}>{boxMessage}</Alert>
-    </Stack>):null}
+      {box ? (
+        <Stack sx={{ width: '100%' }} spacing={2}>
+          <Alert severity={color}>{boxMessage}</Alert>
+        </Stack>
+      ) : null}
       <Box
         sx={{
           backgroundColor: 'background.default',
@@ -181,7 +174,6 @@ const CreatePlaylist = (props) => {
               title: title,
               description: description
             }}
-            
           >
             {({ errors, handleBlur, handleSubmit, touched }) => (
               <form onSubmit={handleSubmit}>
@@ -230,69 +222,74 @@ const CreatePlaylist = (props) => {
                     cols={4}
                     gap={1}
                   >
-                    {media && media.map((item) => (
-                      <Button
-                        onClick={async () => {
-                          handleSelectPlaylist(item);
-                        }}
-                      >
-                        <ImageListItem key={item.MediaPath} cols={1} rows={1}>
-
-                        <CardMedia
-                          sx={{
-                            height: 200,
-                            display: 'block',
-                            maxWidth: 400,
-                            overflow: 'hidden',
-                            width: '100%',
+                    {media &&
+                      media.map((item) => (
+                        <Button
+                          onClick={async () => {
+                            handleSelectPlaylist(item);
                           }}
-                            component={item.MediaType==="image"?"img":item.MediaType}
-                            height="400"
-                            src={item.MediaPath}
-                            alt={item.label}
-                            controls
-                          />
-                                      
-                          <ImageListItemBar
-                            sx={{
-                              background:
-                                IsValuePresentInArray(
-                                  playlistMedia,
-                                  'MediaRef',
-                                  item.MediaRef
-                                ) === false
-                                  ? 'red'
-                                  : 'blue'
-                            }}
-                            title={item.MediaName}
-                            position="top"
-                            actionPosition="left"
-                          />
-                          <ImageListItemBar
-                            sx={{
-                              opacity:IsValuePresentInArray(
-                                playlistMedia,
-                                'MediaRef',
-                                item.MediaRef
-                              ) === false
-                                ? '50%'
-                                : '100%',
-                              background: 'black'
-                            }}
-                            title={handlePriority(item.MediaRef)}
-                            position="bottom"
-                            actionPosition="left"
-                          />
-                        </ImageListItem>
-                        {IsValuePresentInArray(
-                          playlistMedia,
-                          'MediaRef',
-                          item.MediaRef
-                        ) === false
-                          ? ''
-                          : ''}
-                      </Button>
-                    ))}
+                        >
+                          <ImageListItem key={item.MediaPath} cols={1} rows={1}>
+                            <CardMedia
+                              sx={{
+                                height: 200,
+                                display: 'block',
+                                maxWidth: 400,
+                                overflow: 'hidden',
+                                width: '100%'
+                              }}
+                              component={
+                                item.MediaType === 'image'
+                                  ? 'img'
+                                  : item.MediaType
+                              }
+                              height="400"
+                              src={item.MediaPath}
+                              alt={item.label}
+                              controls
+                            />
+
+                            <ImageListItemBar
+                              sx={{
+                                background:
+                                  IsValuePresentInArray(
+                                    playlistMedia,
+                                    'MediaRef',
+                                    item.MediaRef
+                                  ) === false
+                                    ? 'red'
+                                    : 'blue'
+                              }}
+                              title={item.MediaName}
+                              position="top"
+                              actionPosition="left"
+                            />
+                            <ImageListItemBar
+                              sx={{
+                                opacity:
+                                  IsValuePresentInArray(
+                                    playlistMedia,
+                                    'MediaRef',
+                                    item.MediaRef
+                                  ) === false
+                                    ? '50%'
+                                    : '100%',
+                                background: 'black'
+                              }}
+                              title={handlePriority(item.MediaRef)}
+                              position="bottom"
+                              actionPosition="left"
+                            />
+                          </ImageListItem>
+                          {IsValuePresentInArray(
+                            playlistMedia,
+                            'MediaRef',
+                            item.MediaRef
+                          ) === false
+                            ? ''
+                            : ''}
+                        </Button>
+                      ))}
                   </ImageList>
                 </Box>
                 <Box sx={{ py: 2 }}>
