@@ -204,6 +204,8 @@ const SaveMonitorDetails = (props) => {
   };
 
   const handleDateAndTime = () => {
+    let isClashing;
+
     for (let i = 0; i < selectedSchedule.length; i++) {
       for (let j = i + 1; j < selectedSchedule.length; j++) {
         if (selectedSchedule[i].StartTime < selectedSchedule[j].StartTime) {
@@ -216,9 +218,9 @@ const SaveMonitorDetails = (props) => {
                 console.log('Pass 2', selectedSchedule[i], selectedSchedule[j]);
                 // saveMonitorData();
               } else {
-                setOpenSnackbar(true);
+                // setOpenSnackbar(true);
+                isClashing = true;
                 console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
-                return;
               }
             } else if (
               selectedSchedule[i].StartDate > selectedSchedule[j].StartDate
@@ -227,10 +229,15 @@ const SaveMonitorDetails = (props) => {
                 console.log('Pass 3', selectedSchedule[i], selectedSchedule[j]);
                 // saveMonitorData();
               } else {
-                setOpenSnackbar(true);
+                // setOpenSnackbar(true);
+                isClashing = true;
                 console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
-                return;
               }
+            } else if (
+              selectedSchedule[i].StartDate === selectedSchedule[j].StartDate
+            ) {
+              isClashing = true;
+              console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
             }
           }
         } else if (
@@ -245,9 +252,9 @@ const SaveMonitorDetails = (props) => {
                 console.log('Pass 5', selectedSchedule[i], selectedSchedule[j]);
                 // saveMonitorData();
               } else {
-                setOpenSnackbar(true);
+                // setOpenSnackbar(true);
+                isClashing = true;
                 console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
-                return;
               }
             } else if (
               selectedSchedule[i].StartDate > selectedSchedule[j].StartDate
@@ -256,9 +263,9 @@ const SaveMonitorDetails = (props) => {
                 console.log('Pass 6', selectedSchedule[i], selectedSchedule[j]);
                 // saveMonitorData();
               } else {
-                setOpenSnackbar(true);
+                // setOpenSnackbar(true);
+                isClashing = true;
                 console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
-                return;
               }
             }
           }
@@ -270,9 +277,9 @@ const SaveMonitorDetails = (props) => {
               console.log('Pass 7', selectedSchedule[i], selectedSchedule[j]);
               // saveMonitorData();
             } else {
-              setOpenSnackbar(true);
+              // setOpenSnackbar(true);
+              isClashing = true;
               console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
-              return;
             }
           } else if (
             selectedSchedule[i].StartDate > selectedSchedule[j].StartDate
@@ -281,13 +288,24 @@ const SaveMonitorDetails = (props) => {
               console.log('Pass 8', selectedSchedule[i], selectedSchedule[j]);
               // saveMonitorData();
             } else {
-              setOpenSnackbar(true);
+              // setOpenSnackbar(true);
+              isClashing = true;
               console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
-              return;
             }
+          } else if (
+            selectedSchedule[i].StartDate === selectedSchedule[j].StartDate
+          ) {
+            isClashing = true;
+            console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
           }
         }
       }
+    }
+
+    if (isClashing) {
+      setOpenSnackbar(true);
+    } else {
+      saveMonitorData();
     }
   };
 
@@ -295,7 +313,6 @@ const SaveMonitorDetails = (props) => {
     if (reason === 'clickaway') {
       return;
     }
-
     setOpenSnackbar(false);
   };
 
@@ -320,7 +337,7 @@ const SaveMonitorDetails = (props) => {
           onClose={handleCloseSnackBar}
         >
           <Alert onClose={handleCloseSnackBar} severity="error">
-            This is an error message!
+            Some Schedules are Clashing
           </Alert>
         </Snackbar>
         <Container maxWidth="sm">
