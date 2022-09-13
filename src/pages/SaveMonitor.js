@@ -81,6 +81,9 @@ const SaveMonitorDetails = (props) => {
   let days = (state && state.Days && state.Days.split(',')) || [];
   const orientations = ['Portrait', 'Landscape'];
   const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [clashingSchedulesError, setClashingSchedulesError] = useState('');
+
+  var clashingSchedules = [];
 
   const min = 5;
   const max = 60;
@@ -220,7 +223,17 @@ const SaveMonitorDetails = (props) => {
               } else {
                 // setOpenSnackbar(true);
                 isClashing = true;
-                console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+                if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                  clashingSchedules.push(selectedSchedule[i].Title);
+                }
+                if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                  clashingSchedules.push(selectedSchedule[j].Title);
+                }
+                console.log(
+                  'Clash 1',
+                  selectedSchedule[i],
+                  selectedSchedule[j]
+                );
               }
             } else if (
               selectedSchedule[i].StartDate > selectedSchedule[j].StartDate
@@ -231,13 +244,29 @@ const SaveMonitorDetails = (props) => {
               } else {
                 // setOpenSnackbar(true);
                 isClashing = true;
-                console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+                if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                  clashingSchedules.push(selectedSchedule[i].Title);
+                }
+                if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                  clashingSchedules.push(selectedSchedule[j].Title);
+                }
+                console.log(
+                  'Clash 2',
+                  selectedSchedule[i],
+                  selectedSchedule[j]
+                );
               }
             } else if (
               selectedSchedule[i].StartDate === selectedSchedule[j].StartDate
             ) {
               isClashing = true;
-              console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+              if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                clashingSchedules.push(selectedSchedule[i].Title);
+              }
+              if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                clashingSchedules.push(selectedSchedule[j].Title);
+              }
+              console.log('Clash 3', selectedSchedule[i], selectedSchedule[j]);
             }
           }
         } else if (
@@ -254,7 +283,17 @@ const SaveMonitorDetails = (props) => {
               } else {
                 // setOpenSnackbar(true);
                 isClashing = true;
-                console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+                if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                  clashingSchedules.push(selectedSchedule[i].Title);
+                }
+                if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                  clashingSchedules.push(selectedSchedule[j].Title);
+                }
+                console.log(
+                  'Clash 4',
+                  selectedSchedule[i],
+                  selectedSchedule[j]
+                );
               }
             } else if (
               selectedSchedule[i].StartDate > selectedSchedule[j].StartDate
@@ -265,8 +304,29 @@ const SaveMonitorDetails = (props) => {
               } else {
                 // setOpenSnackbar(true);
                 isClashing = true;
-                console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+                if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                  clashingSchedules.push(selectedSchedule[i].Title);
+                }
+                if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                  clashingSchedules.push(selectedSchedule[j].Title);
+                }
+                console.log(
+                  'Clash 5',
+                  selectedSchedule[i],
+                  selectedSchedule[j]
+                );
               }
+            } else if (
+              selectedSchedule[i].StartDate === selectedSchedule[j].StartDate
+            ) {
+              isClashing = true;
+              if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                clashingSchedules.push(selectedSchedule[i].Title);
+              }
+              if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                clashingSchedules.push(selectedSchedule[j].Title);
+              }
+              console.log('Clash 6', selectedSchedule[i], selectedSchedule[j]);
             }
           }
         } else if (
@@ -279,7 +339,13 @@ const SaveMonitorDetails = (props) => {
             } else {
               // setOpenSnackbar(true);
               isClashing = true;
-              console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+              if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                clashingSchedules.push(selectedSchedule[i].Title);
+              }
+              if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                clashingSchedules.push(selectedSchedule[j].Title);
+              }
+              console.log('Clash 7', selectedSchedule[i], selectedSchedule[j]);
             }
           } else if (
             selectedSchedule[i].StartDate > selectedSchedule[j].StartDate
@@ -290,19 +356,33 @@ const SaveMonitorDetails = (props) => {
             } else {
               // setOpenSnackbar(true);
               isClashing = true;
-              console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+              if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+                clashingSchedules.push(selectedSchedule[i].Title);
+              }
+              if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+                clashingSchedules.push(selectedSchedule[j].Title);
+              }
+              console.log('Clash 8', selectedSchedule[i], selectedSchedule[j]);
             }
           } else if (
             selectedSchedule[i].StartDate === selectedSchedule[j].StartDate
           ) {
             isClashing = true;
-            console.log('Clash', selectedSchedule[i], selectedSchedule[j]);
+            if (!clashingSchedules.includes(selectedSchedule[i].Title)) {
+              clashingSchedules.push(selectedSchedule[i].Title);
+            }
+            if (!clashingSchedules.includes(selectedSchedule[j].Title)) {
+              clashingSchedules.push(selectedSchedule[j].Title);
+            }
+
+            console.log('Clash 9', selectedSchedule[i], selectedSchedule[j]);
           }
         }
       }
     }
 
     if (isClashing) {
+      setClashingSchedulesError(clashingSchedules.join(' '));
       setOpenSnackbar(true);
     } else {
       saveMonitorData();
@@ -313,6 +393,7 @@ const SaveMonitorDetails = (props) => {
     if (reason === 'clickaway') {
       return;
     }
+    clashingSchedules = [];
     setOpenSnackbar(false);
   };
 
@@ -337,7 +418,7 @@ const SaveMonitorDetails = (props) => {
           onClose={handleCloseSnackBar}
         >
           <Alert onClose={handleCloseSnackBar} severity="error">
-            Some Schedules are Clashing
+            {clashingSchedulesError} Schedules Are Clashing
           </Alert>
         </Snackbar>
         <Container maxWidth="sm">
@@ -426,7 +507,7 @@ const SaveMonitorDetails = (props) => {
                         {selected.map((value, index) => (
                           <Chip
                             key={index}
-                            label={value.Title}
+                            label={`${value.Title} (${value.StartTime} - ${value.EndTime}) (${value.StartDate} - ${value.EndDate})`}
                             style={{ margin: 2 }}
                             clickable
                             onDelete={(e) => handleRemoveSchedule(e, value)}

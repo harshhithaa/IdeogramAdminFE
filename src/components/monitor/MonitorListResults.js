@@ -97,7 +97,6 @@ const MonitorListResults = (props) => {
                 </TableCell>
                 <TableCell>Monitor Name</TableCell>
                 <TableCell>Description</TableCell>
-                <TableCell>Current Schedule</TableCell>
                 <TableCell>Default Playlist</TableCell>
                 <TableCell>Edit</TableCell>
               </TableRow>
@@ -148,11 +147,6 @@ const MonitorListResults = (props) => {
                         {monitor.Description === 'null'
                           ? '--'
                           : monitor.Description}
-                      </TableCell>
-                      <TableCell>
-                        {`${monitor.ScheduleName}` == 'null'
-                          ? '--'
-                          : `${monitor.ScheduleName}`}
                       </TableCell>
                       <TableCell>{monitor.DefaultPlaylistName}</TableCell>
                       <TableCell>
