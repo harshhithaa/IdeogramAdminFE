@@ -36,7 +36,7 @@ const routes = [
       { path: 'savemedia', element: <SaveMedia /> },
       { path: 'createmedia', element: <CustomizedMedia /> },
       { path: 'media', element: <MediaList /> },
-      { path: 'editimage', element: <EditImage/>},
+      { path: 'editimage', element: <EditImage /> },
       { path: 'saveschedule', element: <SaveSchedule /> },
       { path: 'savemonitor', element: <SaveMonitor /> },
       { path: 'createplaylist', element: <CreatePlaylist /> },

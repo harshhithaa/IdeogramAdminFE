@@ -6,6 +6,6 @@ export default axios.create({
   headers: {
     Authorization: process.env.REACT_APP_AUTH,
     'Content-Type': 'application/json',
-    AppVersion: process.env.REACT_APP_VERSION,
-  },
+    AppVersion: process.env.REACT_APP_VERSION
+  }
 });

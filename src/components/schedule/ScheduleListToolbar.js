@@ -10,53 +10,63 @@ import {
   SvgIcon
 } from '@material-ui/core';
 import { Search as SearchIcon, Trash2 as Trash2Icon } from 'react-feather';
+import { useNavigate } from 'react-router';
 
-const ScheduleListToolbar = (props) => (
-  <Box {...props}>
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'flex-end'
-      }}
-    >
-      <Button
-        sx={{ mx: 1 }}
-        onClick={() => props.onclick()}
-        disabled={props.selectedSchedules.length === 0}
+const ScheduleListToolbar = (props) => {
+  const navigate = useNavigate();
+  return (
+    <Box {...props}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end'
+        }}
       >
-        <SvgIcon fontSize="small" color="action">
-          <Trash2Icon />
-        </SvgIcon>
-        Delete
-      </Button>
-      <Button color="primary" variant="contained" href="saveschedule">
-        Add Schedule
-      </Button>
+        <Button
+          sx={{ mx: 1 }}
+          onClick={() => props.onclick()}
+          disabled={props.selectedSchedules.length === 0}
+        >
+          <SvgIcon fontSize="small" color="action">
+            <Trash2Icon />
+          </SvgIcon>
+          Delete
+        </Button>
+        <Button
+          color="primary"
+          variant="contained"
+          onClick={() => {
+            navigate('/app/saveschedule');
+          }}
+        >
+          Add Schedule
+        </Button>
+      </Box>
+      <Box sx={{ mt: 3 }}>
+        <Card>
+          <CardContent>
+            <Box sx={{ maxWidth: 500 }}>
+              <TextField
+                fullWidth
+                onChange={(e) => props.onsearch(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SvgIcon fontSize="small" color="action">
+                        <SearchIcon />
+                      </SvgIcon>
+                    </InputAdornment>
+                  )
+                }}
+                placeholder="Search Schedule"
+                variant="outlined"
+              />
+            </Box>
+          </CardContent>
+        </Card>
+      </Box>
     </Box>
-    <Box sx={{ mt: 3 }}>
-      <Card>
-        <CardContent>
-          <Box sx={{ maxWidth: 500 }}>
-            <TextField
-              fullWidth
-              onChange={(e) => props.onsearch(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SvgIcon fontSize="small" color="action">
-                      <SearchIcon />
-                    </SvgIcon>
-                  </InputAdornment>
-                )
-              }}
-              placeholder="Search Schedule"
-              variant="outlined"
-            />
-          </Box>
-        </CardContent>
-      </Card>
-    </Box>
-  </Box>
-);
+  );
+};
 
 export default ScheduleListToolbar;
