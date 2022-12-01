@@ -33,13 +33,7 @@ const PlaylistToolbar = (props) => {
           </SvgIcon>
           Delete
         </Button>
-        <Button
-          color="primary"
-          variant="contained"
-          onClick={() => {
-            navigate('/app/createplaylist');
-          }}
-        >
+        <Button color="primary" variant="contained" href="createplaylist">
           Add Playlist
         </Button>
       </Box>

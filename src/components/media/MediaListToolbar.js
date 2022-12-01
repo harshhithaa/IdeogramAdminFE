@@ -34,19 +34,11 @@ const MediaListToolbar = (props) => {
           sx={{ mx: 1 }}
           color="primary"
           variant="contained"
-          onClick={() => {
-            navigate('/app/createmedia');
-          }}
+          href="createmedia"
         >
           Create Media
         </Button>
-        <Button
-          color="primary"
-          variant="contained"
-          onClick={() => {
-            navigate('/app/savemedia');
-          }}
-        >
+        <Button color="primary" variant="contained" href="savemedia">
           Add Media
         </Button>
       </Box>

@@ -32,13 +32,7 @@ const ScheduleListToolbar = (props) => {
           </SvgIcon>
           Delete
         </Button>
-        <Button
-          color="primary"
-          variant="contained"
-          onClick={() => {
-            navigate('/app/saveschedule');
-          }}
-        >
+        <Button color="primary" variant="contained" href="saveschedule">
           Add Schedule
         </Button>
       </Box>
