@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 const MonitorList = (props) => {
   const { monitorlist } = props || null;
   const [monitors, setmonitors] = useState([]);
+  const [playlists, setPlaylists] = useState([]);
   const [selected, setselected] = useState([]);
   const [showmodal, setModal] = useState(false);
   const [loader, setLoader] = useState(false);
@@ -27,12 +28,25 @@ const MonitorList = (props) => {
     const data = {
       componenttype: COMPONENTS.Monitor
     };
+    const dataForPlaylist = {
+      componenttype: COMPONENTS.Playlist
+    };
     props.getUserComponentList(data, (err) => {
       if (err.exists) {
         console.log(err.errmessage);
       } else {
         console.log(monitorlist);
         setmonitors(monitorlist ? monitorlist.list : []);
+        setLoader(true);
+      }
+    });
+
+    props.getUserComponentList(dataForPlaylist, (err) => {
+      if (err.exists) {
+        console.log(err.errmessage);
+      } else {
+        console.log(monitorlist);
+        setPlaylists(monitorlist ? monitorlist.playlistList : []);
         setLoader(true);
       }
     });
@@ -107,6 +121,8 @@ const MonitorList = (props) => {
           <MonitorListToolbar
             onsearch={(e) => setsearch(e)}
             onclick={() => setModal(true)}
+            playlistList={monitorlist?.playlistList}
+            monitorList={monitorlist?.list}
           />
           <Box sx={{ pt: 3 }}>
             <MonitorListResults

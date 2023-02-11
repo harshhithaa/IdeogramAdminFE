@@ -472,3 +472,22 @@ export const getUserComponentDetails = (data, callback) => (dispatch) => {
     console.log(err);
   }
 };
+
+export const updateAllMonitors = (data, callback) => (dispatch) => {
+  const token = store.getState().root.user.accesstoken;
+  Api.post('/admin/updateallmonitors', data, {
+    headers: {
+      'Content-Type': 'application/json',
+      AuthToken: token
+    }
+  })
+    .then((res) => {
+      if (!res.data.Error) callback(res.data.Details);
+      else {
+        callback(res.data.Error);
+      }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
+};
