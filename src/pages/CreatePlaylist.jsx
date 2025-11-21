@@ -4,27 +4,19 @@
 /* eslint-disable react/prop-types */
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import * as Yup from 'yup';
 import { Formik } from 'formik';
 import React, { useState, useEffect } from 'react';
-import ImageList from '@mui/material/ImageList';
-import ImageListItem from '@mui/material/ImageListItem';
-import ImageListItemBar from '@mui/material/ImageListItemBar';
-import { connect } from 'react-redux';
-import { COMPONENTS } from 'src/utils/constant.jsx';
-import { IsValuePresentInArray } from 'src/utils/helperFunctions';
 import CardMedia from '@mui/material/CardMedia';
 import { Alert, Stack } from '@mui/material';
-
-import { Box, Button, Container, TextField, Typography } from '@mui/material';
-
+import { Box, Button, Container, TextField, Typography, Grid } from '@mui/material';
+import { connect } from 'react-redux';
+import { COMPONENTS } from 'src/utils/constant.jsx';
 import { getUserComponentList, savePlaylist } from '../store/action/user';
-import { TryOutlined } from '@mui/icons-material';
 
 const CreatePlaylist = (props) => {
   const navigate = useNavigate();
   const { state } = useLocation();
-  const [type, settype] = useState(
+  const [type] = useState(
     state && state.type == 'View'
       ? 'View'
       : state && state.type == 'Edit'
@@ -32,114 +24,99 @@ const CreatePlaylist = (props) => {
       : 'Create'
   );
 
-  const { component } = props || null;
+  const { component } = props || {};
   const [title, setTitle] = useState((state && state.Name) || '');
-  const [description, setDescription] = useState(
-    (state && state.Description) || ''
-  );
+  const [description, setDescription] = useState((state && state.Description) || '');
   const [media, setMedia] = useState([]);
-  const [id, setId] = useState((state && state.PlaylistRef) || '');
+  const [id] = useState((state && state.PlaylistRef) || '');
 
   const [loader, setloader] = useState(false);
-  const [priority, setpriority] = useState(0);
   const [mediaData, setMediaData] = useState([]);
   const [playlistMedia, setplaylistMedia] = useState([]);
   const [deletedplaylistMedia, setdeletedplaylistMedia] = useState([]);
+  const [selectionCounter, setSelectionCounter] = useState(1); // unique incremental id for each selection
 
-  let [box, setbox] = useState(false);
-  let [boxMessage, setboxMessage] = useState('');
-  let [color, setcolor] = useState('success');
-  console.log(playlistMedia, 'playlistMedia');
-  console.log(deletedplaylistMedia, 'deletedplaylistMedia');
+  const [box, setbox] = useState(false);
+  const [boxMessage, setboxMessage] = useState('');
+  const [color, setcolor] = useState('success');
+
   useEffect(() => {
-    const data = {
-      componenttype: COMPONENTS.Media
-    };
+    const data = { componenttype: COMPONENTS.Media };
 
     props.getUserComponentList(data, (err) => {
-      if (err.exists) {
+      if (err && err.exists) {
         console.log('err.errmessage', err.errmessage);
       } else {
-        setMedia(component ? component.mediaList : []);
+        setMedia(component ? component.mediaList || [] : []);
         setloader(true);
       }
     });
-    setMediaData(media);
-    let prevlist = [];
 
-    state &&
-      state.Media &&
-      state.Media.map((items) => {
-        if (items.IsActive == 1)
-          prevlist.push({
-            MediaRef: items.MediaRef,
-            IsActive: 1
-          });
-      });
-    setplaylistMedia(prevlist);
-    //  console.log('outside', data);
-    console.log('props', prevlist);
+    setMediaData(media);
+    setplaylistMedia([]); // do not preselect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loader]);
 
+  // Toggle selection: only one selection per media allowed.
   function handleSelectPlaylist(item) {
-    if (
-      IsValuePresentInArray(playlistMedia, 'MediaRef', item.MediaRef) === false
-    ) {
-      setplaylistMedia((prev) => [
-        ...prev,
-        { MediaRef: item.MediaRef, IsActive: 1 }
+    setplaylistMedia((prev) => {
+      const existing = prev.find((p) => p.MediaRef === item.MediaRef);
+      if (existing) {
+        // unselect: move to deleted list (for edits) and remove from active
+        setdeletedplaylistMedia((delPrev) => [
+          ...delPrev,
+          { MediaRef: existing.MediaRef, IsActive: 0, SelectionId: existing.SelectionId }
+        ]);
+        return prev.filter((p) => p.SelectionId !== existing.SelectionId);
+      }
+
+      // select: remove any deleted record for this media then add new selection
+      setdeletedplaylistMedia((delPrev) => delPrev.filter((d) => d.MediaRef !== item.MediaRef));
+      const newId = selectionCounter;
+      setSelectionCounter((c) => c + 1);
+      return [...prev, { MediaRef: item.MediaRef, IsActive: 1, SelectionId: newId }];
+    });
+  }
+
+  // Remove a specific selection badge (by SelectionId) — used by badge click (keeps deleted list behavior)
+  function removeSelection(selectionId) {
+    setplaylistMedia((prev) => {
+      const toRemove = prev.find((p) => p.SelectionId === selectionId);
+      if (!toRemove) return prev;
+
+      setdeletedplaylistMedia((delPrev) => [
+        ...delPrev,
+        { MediaRef: toRemove.MediaRef, IsActive: 0, SelectionId: selectionId }
       ]);
 
-      let deletedarr = deletedplaylistMedia.filter(
-        (list) => list.MediaRef !== item.MediaRef
-      );
-
-      setdeletedplaylistMedia((prev) => [...deletedarr]);
-
-      setpriority(priority + 1);
-    } else {
-      setdeletedplaylistMedia((prev) => [
-        ...prev,
-        { MediaRef: item.MediaRef, IsActive: 0 }
-      ]);
-
-      let updatedar = playlistMedia.filter(
-        (list) => list.MediaRef !== item.MediaRef
-      );
-      setplaylistMedia((prev) => [...updatedar]);
-
-      //     console.log('playlistMedia', playlistMedia);
-    }
+      return prev.filter((p) => p.SelectionId !== selectionId);
+    });
   }
 
   function handlePriority(mediaRef) {
-    var priorityIndex =
-      playlistMedia.findIndex((i) => i.MediaRef === mediaRef) + 1;
-
-    if (priorityIndex > 0) {
-      return priorityIndex;
-    } else return '';
+    const priorityIndex = playlistMedia.findIndex((i) => i.MediaRef === mediaRef) + 1;
+    return priorityIndex > 0 ? priorityIndex : '';
   }
 
   function savePlaylistDetails() {
     const savePlaylistData = {
       PlaylistName: title,
       Description: description,
-      Playlist: [...playlistMedia, ...deletedplaylistMedia],
+      Playlist: [
+        ...playlistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive })),
+        ...deletedplaylistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive }))
+      ],
       IsActive: 1
     };
     if (id !== '') savePlaylistData.PlaylistRef = id;
     window.scrollTo(0, 0);
     props.savePlaylist(savePlaylistData, (err) => {
-      if (err.exists) {
-        console.log('err', err);
-
+      if (err && err.exists) {
         setcolor('error');
-        setboxMessage(err.errmessage);
+        setboxMessage(err.errmessage || 'Error saving playlist');
         setbox(true);
       } else {
         navigate('/app/playlists', { replace: true });
-        // setloader(!loader);
       }
     });
   }
@@ -149,155 +126,208 @@ const CreatePlaylist = (props) => {
       <Helmet>
         <title>Create Playlist | Ideogram</title>
       </Helmet>
-      {box ? (
+
+      {box && (
         <Stack sx={{ width: '100%' }} spacing={2}>
           <Alert severity={color}>{boxMessage}</Alert>
         </Stack>
-      ) : null}
+      )}
+
       <Box
         sx={{
           backgroundColor: 'background.default',
+          height: '100vh',
           display: 'flex',
           flexDirection: 'column',
-          height: '100%',
-          justifyContent: 'center'
+          overflow: 'hidden'
         }}
       >
-        <Container maxWidth="md">
-          <Formik
-            initialValues={{
-              title: title,
-              description: description
-            }}
-          >
+        <Container
+          maxWidth="lg"
+          sx={{
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            py: 2,
+            overflow: 'hidden'
+          }}
+        >
+          <Formik initialValues={{ title, description }}>
             {({ errors, handleBlur, handleSubmit, touched }) => (
-              <form onSubmit={handleSubmit}>
-                <Box sx={{ mt: 15 }}>
-                  <Typography color="textPrimary" variant="h2">
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                {/* Top area - heading and fields */}
+                <Box sx={{ flex: '0 0 auto', mb: 2, py: 1 }}>
+                  {/* Heading styled similar to "Create Split Screen" */}
+                  <Typography variant="h4" sx={{ textAlign: 'left', fontWeight: 700, mb: 2 }}>
                     {type} Playlist
                   </Typography>
-                </Box>
-                <TextField
-                  error={Boolean(touched.title && errors.title)}
-                  fullWidth
-                  helperText={touched.title && errors.title}
-                  label="Title"
-                  margin="normal"
-                  name="title"
-                  onBlur={handleBlur}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                  }}
-                  value={title}
-                  variant="outlined"
-                />
-                <TextField
-                  error={Boolean(touched.description && errors.description)}
-                  fullWidth
-                  helperText={touched.description && errors.description}
-                  label="Description"
-                  margin="normal"
-                  name="description"
-                  onBlur={handleBlur}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
-                  }}
-                  value={description}
-                  variant="outlined"
-                />
-                <Box sx={{ py: 2 }}>
-                  <ImageList
-                    sx={{
-                      width: '100%',
-                      height: 450,
-                      // Promote the list into its own layer in Chrome. This costs memory, but helps keeping high FPS.
-                      transform: 'translateZ(0)'
-                    }}
-                    rowHeight={200}
-                    cols={window.innerWidth < 400 ? 2 : 4}
-                    gap={1}
-                  >
-                    {media &&
-                      media.map((item) => (
-                        <Button
-                          onClick={async () => {
-                            handleSelectPlaylist(item);
-                          }}
-                        >
-                          <ImageListItem key={item.MediaPath} cols={1} rows={1}>
-                            <CardMedia
-                              sx={{
-                                height: 200,
-                                display: 'block',
-                                maxWidth: 400,
-                                overflow: 'hidden',
-                                width: '100%'
-                              }}
-                              component={
-                                item.MediaType === 'image'
-                                  ? 'img'
-                                  : item.MediaType
-                              }
-                              height="400"
-                              src={item.MediaPath}
-                              alt={item.label}
-                              controls
-                            />
 
-                            <ImageListItemBar
-                              sx={{
-                                background:
-                                  IsValuePresentInArray(
-                                    playlistMedia,
-                                    'MediaRef',
-                                    item.MediaRef
-                                  ) === false
-                                    ? 'red'
-                                    : 'blue'
-                              }}
-                              title={item.MediaName}
-                              position="top"
-                              actionPosition="left"
-                            />
-                            <ImageListItemBar
-                              sx={{
-                                opacity:
-                                  IsValuePresentInArray(
-                                    playlistMedia,
-                                    'MediaRef',
-                                    item.MediaRef
-                                  ) === false
-                                    ? '50%'
-                                    : '100%',
-                                background: 'black'
-                              }}
-                              title={handlePriority(item.MediaRef)}
-                              position="bottom"
-                              actionPosition="left"
-                            />
-                          </ImageListItem>
-                          {IsValuePresentInArray(
-                            playlistMedia,
-                            'MediaRef',
-                            item.MediaRef
-                          ) === false
-                            ? ''
-                            : ''}
-                        </Button>
-                      ))}
-                  </ImageList>
+                  <Grid container spacing={2}>
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        error={Boolean(touched.title && errors.title)}
+                        fullWidth
+                        helperText={touched.title && errors.title}
+                        label="Title"
+                        margin="normal"
+                        name="title"
+                        onBlur={handleBlur}
+                        onChange={(e) => setTitle(e.target.value)}
+                        value={title}
+                        variant="outlined"
+                        InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 700, fontSize: '1.25rem' } }}
+                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1.125rem', lineHeight: 1.2 } }}
+                      />
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <TextField
+                        error={Boolean(touched.description && errors.description)}
+                        fullWidth
+                        helperText={touched.description && errors.description}
+                        label="Description"
+                        margin="normal"
+                        name="description"
+                        onBlur={handleBlur}
+                        onChange={(e) => setDescription(e.target.value)}
+                        value={description}
+                        variant="outlined"
+                        InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 700, fontSize: '1.25rem' } }}
+                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1.125rem', lineHeight: 1.2 } }}
+                      />
+                    </Grid>
+                  </Grid>
                 </Box>
-                <Box sx={{ py: 2 }}>
-                  <Button
-                    color="primary"
-                    fullWidth
-                    size="large"
-                    type="submit"
-                    variant="contained"
-                    onClick={() => {
-                      savePlaylistDetails();
+
+                {/* Media area - responsive grid, scroll only inside */}
+                <Box sx={{ flex: '1 1 auto', pt: 2, pb: 2, overflow: 'hidden' }}>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: {
+                        xs: 'repeat(2, 1fr)',
+                        sm: 'repeat(3, 1fr)',
+                        md: 'repeat(4, 1fr)',
+                        lg: 'repeat(5, 1fr)'
+                      },
+                      gap: 2,
+                      width: '100%',
+                      boxSizing: 'border-box',
+                      maxHeight: '60vh',
+                      overflowY: 'auto',
+                      pr: 1
                     }}
                   >
+                    {Array.isArray(media) && media.length === 0 && (
+                      <Box sx={{ gridColumn: '1/-1', textAlign: 'center', color: 'text.secondary', p: 4 }}>
+                        No media uploaded.
+                      </Box>
+                    )}
+
+                    {Array.isArray(media) &&
+                      media.map((item) => {
+                        const selectionsForMedia = playlistMedia.filter((s) => s.MediaRef === item.MediaRef);
+                        const badges = selectionsForMedia.map((sel) => {
+                          const orderNumber = playlistMedia.findIndex((p) => p.SelectionId === sel.SelectionId) + 1;
+                          return { ...sel, orderNumber };
+                        });
+
+                        return (
+                          <Box key={item.MediaRef || item.MediaPath} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                            <Box
+                              component="button"
+                              type="button"
+                              onClick={() => handleSelectPlaylist(item)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') handleSelectPlaylist(item);
+                              }}
+                              sx={{
+                                aspectRatio: '1 / 1',
+                                width: '100%',
+                                position: 'relative',
+                                borderRadius: 1,
+                                overflow: 'hidden',
+                                border: (theme) => `1px solid ${theme.palette.divider}`,
+                                cursor: 'pointer',
+                                backgroundColor: 'background.paper',
+                                padding: 0,
+                                textAlign: 'left',
+                                boxShadow: selectionsForMedia.length ? '0 8px 22px rgba(25,118,210,0.12)' : 'none',
+                                transition: 'transform 150ms ease, box-shadow 150ms ease',
+                                '&:hover': { transform: 'translateY(-4px)' }
+                              }}
+                            >
+                              <CardMedia
+                                component={item.MediaType === 'image' ? 'img' : 'video'}
+                                src={item.MediaPath}
+                                alt={item.MediaName || ''}
+                                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
+                                controls={item.MediaType !== 'image'}
+                              />
+
+                              {/* top-left selection badges */}
+                              <Box sx={{ position: 'absolute', top: 8, left: 8, zIndex: 12, display: 'flex', gap: 1, alignItems: 'center' }}>
+                                {badges.length === 0 ? (
+                                  <Box sx={{ width: 26, height: 26, borderRadius: 0, border: (theme) => `2px solid rgba(255,255,255,0.85)`, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                                ) : (
+                                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                    {badges.map((b) => (
+                                      <Box
+                                        key={b.SelectionId}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          removeSelection(b.SelectionId);
+                                        }}
+                                        title={`Remove selection #${b.orderNumber}`}
+                                        sx={{
+                                          minWidth: 28,
+                                          height: 28,
+                                          borderRadius: 0,
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontWeight: 700,
+                                          fontSize: 12,
+                                          color: (theme) => theme.palette.common.white,
+                                          border: (theme) => `2px solid ${theme.palette.primary.main}`,
+                                          backgroundColor: (theme) => theme.palette.primary.main,
+                                          boxShadow: '0 3px 8px rgba(25,118,210,0.22)',
+                                          cursor: 'pointer',
+                                          userSelect: 'none'
+                                        }}
+                                      >
+                                        {b.orderNumber}
+                                      </Box>
+                                    ))}
+                                  </Box>
+                                )}
+                              </Box>
+
+                              {/* media name overlay at bottom (black translucent background) */}
+                              <Box
+                                sx={{
+                                  position: 'absolute',
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  p: '8px',
+                                  background: 'rgba(0,0,0,0.65)',
+                                  color: '#fff',
+                                  fontSize: 13
+                                }}
+                              >
+                                {item.MediaName || item.MediaPath || 'Untitled'}
+                              </Box>
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                  </Box>
+                </Box>
+
+                {/* Footer - centered button */}
+                <Box sx={{ flex: '0 0 auto', display: 'flex', justifyContent: 'center', pt: 2 }}>
+                  <Button color="primary" size="large" type="button" variant="contained" onClick={() => savePlaylistDetails()}>
                     {type} Playlist
                   </Button>
                 </Box>
@@ -311,15 +341,13 @@ const CreatePlaylist = (props) => {
 };
 
 const mapStateToProps = ({ root = {} }) => {
-  const component = root.user.components;
-
-  return {
-    component
-  };
+  const component = root.user?.components;
+  return { component };
 };
+
 const mapDispatchToProps = (dispatch) => ({
-  getUserComponentList: (data, callback) =>
-    dispatch(getUserComponentList(data, callback)),
+  getUserComponentList: (data, callback) => dispatch(getUserComponentList(data, callback)),
   savePlaylist: (data, callback) => dispatch(savePlaylist(data, callback))
 });
+
 export default connect(mapStateToProps, mapDispatchToProps)(CreatePlaylist);

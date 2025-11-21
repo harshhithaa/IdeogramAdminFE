@@ -20,20 +20,38 @@ const PlaylistToolbar = (props) => {
       <Box
         sx={{
           display: 'flex',
-          justifyContent: 'flex-end'
+          justifyContent: 'flex-end',
+          gap: 1,
+          alignItems: 'center'
         }}
       >
+        {/* DELETE button styled/behaves like Media page:
+            - contained, error color
+            - uses startIcon for neat icon+text alignment
+            - disabled when nothing selected
+            - calls props.onclick() on click */}
         <Button
           sx={{ mx: 1 }}
+          color="error"
+          variant="contained"
+          startIcon={
+            <SvgIcon fontSize="small" sx={{ color: 'white' }}>
+              <Trash2Icon />
+            </SvgIcon>
+          }
           onClick={() => props.onclick()}
-          disabled={props.selectedPlaylist.length === 0}
+          disabled={!props.selectedPlaylist || props.selectedPlaylist.length === 0}
+          aria-label="Delete selected playlists"
         >
-          <SvgIcon fontSize="small" color="action">
-            <Trash2Icon />
-          </SvgIcon>
           Delete
         </Button>
-        <Button color="primary" variant="contained" href="createplaylist">
+
+        <Button
+          color="primary"
+          variant="contained"
+          href="createplaylist"
+          sx={{ display: 'flex', alignItems: 'center' }}
+        >
           Add Playlist
         </Button>
       </Box>

@@ -205,7 +205,7 @@ const PlaylistListResults = (props) => {
             {/* ✅ IMPROVED TABLE BODY */}
             <TableBody>
               {playlists && playlists
-                .filter((item) => item.Name.includes(search))
+                .filter((item) => item.Name?.toLowerCase().includes(search?.toLowerCase()))
                 .slice(page * limit, page * limit + limit)
                 .map((Playlist) => (
                   <TableRow
