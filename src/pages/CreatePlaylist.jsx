@@ -233,7 +233,19 @@ const CreatePlaylist = (props) => {
                         });
 
                         return (
-                          <Box key={item.MediaRef || item.MediaPath} sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                          <Box
+                            key={item.MediaRef || item.MediaPath}
+                            sx={{
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: 0.5,
+                              width: '100%',
+                              maxWidth: 180,
+                              minWidth: 0,
+                              aspectRatio: '1 / 1',
+                              justifySelf: 'center'
+                            }}
+                          >
                             <Box
                               component="button"
                               type="button"
@@ -242,8 +254,8 @@ const CreatePlaylist = (props) => {
                                 if (e.key === 'Enter' || e.key === ' ') handleSelectPlaylist(item);
                               }}
                               sx={{
-                                aspectRatio: '1 / 1',
                                 width: '100%',
+                                aspectRatio: '1 / 1',
                                 position: 'relative',
                                 borderRadius: 1,
                                 overflow: 'hidden',
@@ -261,7 +273,16 @@ const CreatePlaylist = (props) => {
                                 component={item.MediaType === 'image' ? 'img' : 'video'}
                                 src={item.MediaPath}
                                 alt={item.MediaName || ''}
-                                sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', pointerEvents: 'none' }}
+                                sx={{
+                                  width: '100%',
+                                  height: '100%',
+                                  objectFit: 'cover',
+                                  display: 'block',
+                                  pointerEvents: 'none',
+                                  aspectRatio: '1 / 1',
+                                  minHeight: 0,
+                                  minWidth: 0
+                                }}
                                 controls={item.MediaType !== 'image'}
                               />
 

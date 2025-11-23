@@ -4,14 +4,12 @@ import { store } from "../store/store";
 
 // Predefined model data
 const MODELS = [
-  { id: "11", name: "1 × 1", blocksX: 1, blocksY: 1, finalW: 1200, finalH: 1200 },
-  // removed 2 × 1 model as requested
+  // 1×1 removed per request — only 1×2 and 2×2 remain
   { id: "12", name: "1 × 2", blocksX: 1, blocksY: 2, finalW: 1200, finalH: 2400 },
   { id: "22", name: "2 × 2", blocksX: 2, blocksY: 2, finalW: 2400, finalH: 2400 },
 ];
 
 const maxImagesForModel = (modelId) => {
-  if (modelId === "11") return 1;
   if (modelId === "12") return 2;
   if (modelId === "22") return 4;
   return 4;

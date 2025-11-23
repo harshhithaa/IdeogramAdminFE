@@ -1,154 +1,49 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
-import ImageEditor from '@toast-ui/react-image-editor';
 import { useLocation } from 'react-router-dom';
-import short from 'short-uuid';
 import { connect } from 'react-redux';
 import { saveMedia } from '../store/action/user';
 import { Button, Box, Snackbar, Alert, TextField, Grid } from '@mui/material';
-
-const uuid = short.generate();
+import FilerobotImageEditor from "react-filerobot-image-editor";
 
 const EditImage = ({ saveMedia: uploadMedia }) => {
   const location = useLocation();
-  const editorRef = useRef(null);
-  const objUrlRef = useRef(null); // for local File objectURL cleanup
-  const fileInputRef = useRef(null); // new: trigger file picker when arriving with openPicker
+  const fileInputRef = useRef(null);
   const [snack, setSnack] = useState({ open: false, severity: 'success', msg: '' });
+  const [mediaName, setMediaName] = useState('');
+  const [editorOpen, setEditorOpen] = useState(true);
+  const [imageSrc, setImageSrc] = useState('');
+  const [editedImage, setEditedImage] = useState(null);
 
-  const [mediaName, setMediaName] = useState(''); // <<-- new: name input
-
-  // location.state may be either a string (old behavior) or object { src, file, preset }
-  const incoming = location.state;
-  const imagePath = (incoming && typeof incoming === 'object') ? (incoming.src || '') : (incoming || '');
-
-  // Create an initial load path synchronously so ImageEditor mounts with the image
-  // For local Files create an object URL and keep reference for cleanup.
-  const initialLoadPath = useMemo(() => {
-    if (incoming && typeof incoming === 'object' && incoming.file instanceof File) {
-      try {
-        if (objUrlRef.current) {
-          URL.revokeObjectURL(objUrlRef.current);
-        }
-      } catch (e) {}
-      objUrlRef.current = URL.createObjectURL(incoming.file);
-      return objUrlRef.current;
-    }
-    return imagePath || '';
-  }, [incoming, imagePath]);
-
-  // Programmatically load the image and run a small UI fix so tools become active
+  // Get image from navigation state
   useEffect(() => {
-    if (!initialLoadPath) return;
-
-    let mounted = true;
-    let attempts = 0;
-
-    const tryLoad = async () => {
-      const inst = editorRef.current && editorRef.current.getInstance && editorRef.current.getInstance();
-      if (!inst) {
-        if (attempts++ < 20 && mounted) {
-          setTimeout(tryLoad, 150);
-        }
-        return;
-      }
-
-      try {
-        // load programmatically (mirrors clicking Load)
-        await inst.loadImageFromURL(initialLoadPath, (incoming && incoming.file && incoming.file.name) || uuid);
-
-        // post-load housekeeping to ensure UI/tools are active:
-        // clear undo/redo, stop any drawing mode and nudge UI menus to bind events
-        try {
-          if (typeof inst.clearUndoStack === 'function') inst.clearUndoStack();
-          if (typeof inst.clearRedoStack === 'function') inst.clearRedoStack();
-          if (typeof inst.stopDrawingMode === 'function') inst.stopDrawingMode();
-        } catch (e) { /* non-critical */ }
-
-        // force a mild menu toggle to ensure the UI attaches handlers
-        try {
-          if (inst.ui && typeof inst.ui.changeMenu === 'function') {
-            inst.ui.changeMenu('text');
-            setTimeout(() => inst.ui.changeMenu(''), 100);
-          }
-        } catch (e) { /* non-critical */ }
-      } catch (err) {
-        // console.error('Auto-load failed', err);
-      }
-    };
-
-    tryLoad();
-
-    return () => {
-      mounted = false;
-    };
-  }, [initialLoadPath, incoming, uuid]);
-
-  // auto-open file picker when user arrived from "Add your own image"
-  useEffect(() => {
-    if (incoming && incoming.openPicker && fileInputRef.current) {
-      // small timeout so page/editor mounts first
-      setTimeout(() => {
-        try { fileInputRef.current.click(); } catch (e) {}
-      }, 120);
+    const incoming = location.state;
+    if (incoming && typeof incoming === 'object' && incoming.src) {
+      setImageSrc(incoming.src);
+      setEditorOpen(true);
+    } else if (typeof incoming === 'string') {
+      setImageSrc(incoming);
+      setEditorOpen(true);
     }
-  }, [incoming]);
+  }, [location.state]);
 
-  // handle file chosen in editor page (either auto-opened or manual)
-  const onLocalFileChosen = async (e) => {
-    const file = e?.target?.files && e.target.files[0];
-    if (!file) return;
-    try {
-      // revoke old object url
-      try { if (objUrlRef.current) URL.revokeObjectURL(objUrlRef.current); } catch (err) {}
-      objUrlRef.current = URL.createObjectURL(file);
-
-      // wait for editor instance
-      let attempts = 0;
-      const waitAndLoad = async () => {
-        const inst = editorRef.current && editorRef.current.getInstance && editorRef.current.getInstance();
-        if (!inst) {
-          if (attempts++ < 20) {
-            setTimeout(waitAndLoad, 100);
-          }
-          return;
-        }
-        await inst.loadImageFromURL(objUrlRef.current, file.name || uuid);
-
-        // post-load housekeeping so tools become active
-        try {
-          if (typeof inst.clearUndoStack === 'function') inst.clearUndoStack();
-          if (typeof inst.clearRedoStack === 'function') inst.clearRedoStack();
-          if (typeof inst.stopDrawingMode === 'function') inst.stopDrawingMode();
-          if (inst.ui && typeof inst.ui.changeMenu === 'function') {
-            inst.ui.changeMenu('text');
-            setTimeout(() => inst.ui.changeMenu(''), 80);
-          }
-        } catch (e) { /* non-critical */ }
-      };
-      waitAndLoad();
-
-      // clear file input so same file can be selected again later
-      e.target.value = null;
-    } catch (err) {
-      console.error(err);
+  // Handle save from Filerobot
+  const handleSave = (editedObj) => {
+    if (editedObj && editedObj.imageBase64) {
+      setEditedImage(editedObj.imageBase64);
+      setEditorOpen(false);
     }
   };
 
-  // DOWNLOAD & SAVE: export image, download in browser and upload to server
+  // Handle upload and download
   const handleDownloadAndUpload = async () => {
     try {
-      const inst = editorRef.current && editorRef.current.getInstance && editorRef.current.getInstance();
-      if (!inst) throw new Error('Editor not ready');
-
-      const dataUrl = inst.toDataURL();
-      if (!dataUrl) throw new Error('Failed to export image');
-
-      const res = await fetch(dataUrl);
+      if (!editedImage) throw new Error('No image to save');
+      const res = await fetch(editedImage);
       const blob = await res.blob();
-      const safeName = (mediaName && mediaName.trim()) ? mediaName.trim() : `edited_${uuid}`;
+      const safeName = (mediaName && mediaName.trim()) ? mediaName.trim() : `edited_media`;
       const filename = `${safeName}.png`;
 
-      // download
+      // Download
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -158,7 +53,7 @@ const EditImage = ({ saveMedia: uploadMedia }) => {
       a.remove();
       URL.revokeObjectURL(url);
 
-      // upload
+      // Upload
       const formdata = new FormData();
       const file = new File([blob], filename, { type: blob.type });
       formdata.append('Media', file);
@@ -171,17 +66,9 @@ const EditImage = ({ saveMedia: uploadMedia }) => {
         }
       });
     } catch (e) {
-      console.error(e);
       setSnack({ open: true, severity: 'error', msg: e.message || 'Operation failed' });
     }
   };
-
-  // revoke object URL on unmount to avoid leaks
-  useEffect(() => {
-    return () => {
-      try { if (objUrlRef.current) { URL.revokeObjectURL(objUrlRef.current); objUrlRef.current = null; } } catch (e) {}
-    };
-  }, []);
 
   return (
     <Box sx={{ position: 'relative', maxWidth: 1200, mx: 'auto' }}>
@@ -191,59 +78,83 @@ const EditImage = ({ saveMedia: uploadMedia }) => {
         </Alert>
       </Snackbar>
 
-      {/* hidden file input used when user clicks "Add your own image" on Create Media */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="image/*"
-        onChange={onLocalFileChosen}
-        style={{ display: 'none' }}
-      />
+      {/* Filerobot Image Editor */}
+      {editorOpen && imageSrc && (
+        <FilerobotImageEditor
+          source={imageSrc}
+          onSave={handleSave}
+          onClose={() => setEditorOpen(false)}
+          annotationsCommon={{
+            fill: '#1976d2'
+          }}
+          Text={{ text: 'Add text here' }}
+          Rotate={{ angle: 0, componentType: 'slider' }}
+          Crop={{
+            presetsItems: [
+              { titleKey: 'classicTv', descriptionKey: '4:3', ratio: 4 / 3 },
+              { titleKey: 'cinemascope', descriptionKey: '16:9', ratio: 16 / 9 },
+              { titleKey: 'square', descriptionKey: '1:1', ratio: 1 / 1 }
+            ],
+            presetsFolders: [
+              {
+                titleKey: 'socialMedia', descriptionKey: 'Social Media',
+                groups: [
+                  { titleKey: 'fbProfile', descriptionKey: 'Facebook Profile', ratio: 1 },
+                  { titleKey: 'fbCover', descriptionKey: 'Facebook Cover', ratio: 820 / 312 }
+                ]
+              }
+            ]
+          }}
+          tabsIds={['adjust', 'filters', 'finetune', 'resize', 'crop', 'rotate', 'draw', 'text']}
+          defaultTabId={'adjust'}
+          theme={{
+            palette: {
+              'bg-primary': '#fff',
+              'accent-primary': '#1976d2',
+              'accent-secondary': '#1565c0'
+            }
+          }}
+          savingPixelRatio={1}
+          previewPixelRatio={1}
+          language="en"
+          showGoBackBtn={false}
+        />
+      )}
 
-      <ImageEditor
-        ref={editorRef}
-        includeUI={{
-          // keep path empty and load programmatically above (this ensures editable state)
-          loadImage: { path: '', name: uuid },
-          theme: {
-            'menu.normalIcon.color': '#ffffff',
-            'menu.activeIcon.color': '#ffffff',
-            'menu.disabledIcon.color': '#ffffff',
-            'menu.hoverIcon.color': '#ffffff',
-            'submenu.normalIcon.color': '#ffffff',
-            'submenu.activeIcon.color': '#000000'
-          },
-          menu: ['text','draw','mask','rotate','crop','flip','shape','icon','filter'],
-          initMenu: 'text',
-          uiSize: { width: '100%', height: '600px' },
-          menuBarPosition: 'right'
-        }}
-        cssMaxHeight={600}
-        cssMaxWidth={1100}
-        selectionStyle={{ cornerSize: 20, rotatingPointOffset: 70 }}
-        usageStatistics={false}
-      />
-
-      {/* controls: name input (left) + Download&Save (centered with the input) */}
-      <Box sx={{ mt: 2 }}>
-        <Grid container spacing={2} alignItems="center" justifyContent="center">
-          <Grid item xs={10} sm={6} md={4} lg={3}>
-            <TextField
-              fullWidth
-              label="Name for media"
-              value={mediaName}
-              onChange={(e) => setMediaName(e.target.value)}
-              size="small"
-            />
-          </Grid>
-
-          <Grid item xs="auto">
-            <Button variant="contained" color="primary" onClick={handleDownloadAndUpload}>
-              DOWNLOAD & SAVE
-            </Button>
-          </Grid>
-        </Grid>
-      </Box>
+      {/* Preview and Save Controls */}
+      {!editorOpen && editedImage && (
+        <Box sx={{ mt: 2, textAlign: 'center' }}>
+          <img
+            src={editedImage}
+            alt="Edited preview"
+            style={{
+              maxWidth: '100%',
+              maxHeight: 400,
+              borderRadius: 8,
+              border: '1px solid #eee',
+              objectFit: 'contain'
+            }}
+          />
+          <Box sx={{ mt: 2 }}>
+            <Grid container spacing={2} alignItems="center" justifyContent="center">
+              <Grid item xs={10} sm={6} md={4} lg={3}>
+                <TextField
+                  fullWidth
+                  label="Name for media"
+                  value={mediaName}
+                  onChange={(e) => setMediaName(e.target.value)}
+                  size="small"
+                />
+              </Grid>
+              <Grid item xs="auto">
+                <Button variant="contained" color="primary" onClick={handleDownloadAndUpload}>
+                  DOWNLOAD & SAVE
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+        </Box>
+      )}
     </Box>
   );
 };

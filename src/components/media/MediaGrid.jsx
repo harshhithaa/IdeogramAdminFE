@@ -109,6 +109,16 @@ const MediaGrid = ({ media = [], setselected, query = '', selected = [] }) => {
     }
   }, [query, images, videos, gifs, activeTab]);
 
+  // toggle selection helper for clicking the whole card
+  const toggleSelection = (MediaRef) => {
+    const idx = selectedMediaRef.indexOf(MediaRef);
+    let newSelected = [];
+    if (idx === -1) newSelected = newSelected.concat(selectedMediaRef, MediaRef);
+    else newSelected = selectedMediaRef.filter((r) => r !== MediaRef);
+    setSelectedMediaRef(newSelected);
+    if (typeof setselected === 'function') setselected(newSelected);
+  };
+
   const renderTile = (item) => {
     const src = buildSrc(item?.MediaPath);
     const thumb = buildSrc(item?.Thumbnail || item?.MediaThumb || item?.Poster || item?.ThumbPath || item?.Cover);
@@ -130,18 +140,24 @@ const MediaGrid = ({ media = [], setselected, query = '', selected = [] }) => {
     return (
       <div
         key={item.MediaRef}
+        onClick={() => toggleSelection(item.MediaRef)} // whole card toggles selection
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') toggleSelection(item.MediaRef); }}
         style={{
           position: 'relative',
           borderRadius: 8,
           overflow: 'hidden',
-          background: '#fff'
+          background: '#fff',
+          cursor: 'pointer',
+          border: selectedMediaRef.indexOf(item.MediaRef) !== -1 ? '2px solid rgba(25,118,210,0.28)' : '1px solid rgba(0,0,0,0.06)'
         }}
       >
         <Checkbox
           style={{ position: 'absolute', left: 8, top: 8, zIndex: 5, background: 'transparent' }}
           checked={selectedMediaRef.indexOf(item.MediaRef) !== -1}
           onClick={(e) => e.stopPropagation()}
-          onChange={(e) => handleSelectOne(e, item.MediaRef)}
+          onChange={() => toggleSelection(item.MediaRef)}
         />
 
         <div style={{ width: '100%', paddingTop: '100%', position: 'relative', background: '#f4f4f4' }}>
@@ -197,17 +213,17 @@ const MediaGrid = ({ media = [], setselected, query = '', selected = [] }) => {
   const panelBorder = 'rgba(0,0,0,0.12)';
   const panelRadius = 8; // px
 
-  // content area left transparent so only the animated rounded indicator shows.
-  // This removes the large light rectangle behind the tabs.
+  // content area: subtle background container so grid is visually separated from page.
+  // Increased minHeight so at least two rows of media are visible without scrolling.
   const contentWrapperSx = () => ({
     borderRadius: `${panelRadius}px`,
-    backgroundColor: 'transparent',
+    backgroundColor: panelBg,
     p: 2,
-    border: 'none',
+    border: `1px solid rgba(0,0,0,0.02)`,
     mt: 0,
     overflow: 'visible',
     boxSizing: 'border-box',
-    minHeight: 120
+    minHeight: 420
   });
 
   // measure tabs and update indicator
