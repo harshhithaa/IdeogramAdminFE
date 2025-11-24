@@ -7,7 +7,7 @@ import { Helmet } from 'react-helmet-async';
 import { Formik } from 'formik';
 import React, { useState, useEffect } from 'react';
 import CardMedia from '@mui/material/CardMedia';
-import { Alert, Stack } from '@mui/material';
+import { Alert, Stack, Checkbox } from '@mui/material';
 import { Box, Button, Container, TextField, Typography, Grid } from '@mui/material';
 import { connect } from 'react-redux';
 import { COMPONENTS } from 'src/utils/constant.jsx';
@@ -40,6 +40,12 @@ const CreatePlaylist = (props) => {
   const [boxMessage, setboxMessage] = useState('');
   const [color, setcolor] = useState('success');
 
+  // visual constants matched to Media page
+  const panelBg = 'rgba(25,118,210,0.03)';
+  const panelRadius = 8;
+  const panelBorder = 'rgba(0,0,0,0.02)';
+  const cardBorder = 'rgba(0,0,0,0.06)';
+
   useEffect(() => {
     const data = { componenttype: COMPONENTS.Media };
 
@@ -54,7 +60,6 @@ const CreatePlaylist = (props) => {
 
     setMediaData(media);
     setplaylistMedia([]); // do not preselect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loader]);
 
   // Toggle selection: only one selection per media allowed.
@@ -175,8 +180,8 @@ const CreatePlaylist = (props) => {
                         onChange={(e) => setTitle(e.target.value)}
                         value={title}
                         variant="outlined"
-                        InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 700, fontSize: '1.25rem' } }}
-                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1.125rem', lineHeight: 1.2 } }}
+                        InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 550, fontSize: '1rem' } }}
+                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1rem', lineHeight: 1.2 } }}
                       />
                     </Grid>
 
@@ -192,157 +197,175 @@ const CreatePlaylist = (props) => {
                         onChange={(e) => setDescription(e.target.value)}
                         value={description}
                         variant="outlined"
-                        InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 700, fontSize: '1.25rem' } }}
-                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1.125rem', lineHeight: 1.2 } }}
+                        InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 550, fontSize: '1rem' } }}
+                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1rem', lineHeight: 1.2 } }}
                       />
                     </Grid>
                   </Grid>
                 </Box>
 
-                {/* Media area - responsive grid, scroll only inside */}
-                <Box sx={{ flex: '1 1 auto', pt: 2, pb: 2, overflow: 'hidden' }}>
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: {
-                        xs: 'repeat(2, 1fr)',
-                        sm: 'repeat(3, 1fr)',
-                        md: 'repeat(4, 1fr)',
-                        lg: 'repeat(5, 1fr)'
-                      },
-                      gap: 2,
-                      width: '100%',
-                      boxSizing: 'border-box',
-                      maxHeight: '60vh',
-                      overflowY: 'auto',
-                      pr: 1
-                    }}
-                  >
-                    {Array.isArray(media) && media.length === 0 && (
-                      <Box sx={{ gridColumn: '1/-1', textAlign: 'center', color: 'text.secondary', p: 4 }}>
-                        No media uploaded.
-                      </Box>
-                    )}
+                {/* Media area - match Media page styling exactly */}
+                <Box sx={{
+                  flex: '1 1 auto',
+                  pt: 2,
+                  pb: 2,
+                  overflow: 'hidden'
+                }}>
+                  {/* content wrapper matched to MediaList/MediaGrid */ }
+                  <Box sx={{
+                    borderRadius: `${panelRadius}px`,
+                    backgroundColor: panelBg,
+                    p: 2,
+                    border: `1px solid ${panelBorder}`,
+                    mt: 0,
+                    overflow: 'visible',
+                    boxSizing: 'border-box',
+                    minHeight: 420
+                  }}>
+                    {/* internal grid uses same columns/spacing as Media page */}
+                    <Box
+                      sx={{
+                        display: 'grid',
+                        gridTemplateColumns: {
+                          xs: 'repeat(2, 1fr)',
+                          sm: 'repeat(3, 1fr)',
+                          md: 'repeat(4, 1fr)',
+                          lg: 'repeat(5, 1fr)'
+                        },
+                        gap: 2,
+                        width: '100%',
+                        boxSizing: 'border-box',
+                        maxHeight: '60vh',
+                        overflowY: 'auto',
+                        pr: 1
+                      }}
+                    >
+                      {Array.isArray(media) && media.length === 0 && (
+                        <Box sx={{ gridColumn: '1/-1', textAlign: 'center', color: 'text.secondary', p: 4 }}>
+                          No media uploaded.
+                        </Box>
+                      )}
 
-                    {Array.isArray(media) &&
-                      media.map((item) => {
-                        const selectionsForMedia = playlistMedia.filter((s) => s.MediaRef === item.MediaRef);
-                        const badges = selectionsForMedia.map((sel) => {
-                          const orderNumber = playlistMedia.findIndex((p) => p.SelectionId === sel.SelectionId) + 1;
-                          return { ...sel, orderNumber };
-                        });
+                      {Array.isArray(media) &&
+                        media.map((item) => {
+                          const selectionsForMedia = playlistMedia.filter((s) => s.MediaRef === item.MediaRef);
+                          const isSelected = selectionsForMedia.length > 0;
+                          const orderNumber = isSelected ? (playlistMedia.findIndex((p) => p.MediaRef === item.MediaRef) + 1) : null;
 
-                        return (
-                          <Box
-                            key={item.MediaRef || item.MediaPath}
-                            sx={{
-                              display: 'flex',
-                              flexDirection: 'column',
-                              gap: 0.5,
-                              width: '100%',
-                              maxWidth: 180,
-                              minWidth: 0,
-                              aspectRatio: '1 / 1',
-                              justifySelf: 'center'
-                            }}
-                          >
+                          return (
                             <Box
-                              component="button"
-                              type="button"
-                              onClick={() => handleSelectPlaylist(item)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') handleSelectPlaylist(item);
-                              }}
+                              key={item.MediaRef || item.MediaPath}
                               sx={{
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: 0.5,
                                 width: '100%',
+                                maxWidth: 180,
+                                minWidth: 0,
                                 aspectRatio: '1 / 1',
-                                position: 'relative',
-                                borderRadius: 1,
-                                overflow: 'hidden',
-                                border: (theme) => `1px solid ${theme.palette.divider}`,
-                                cursor: 'pointer',
-                                backgroundColor: 'background.paper',
-                                padding: 0,
-                                textAlign: 'left',
-                                boxShadow: selectionsForMedia.length ? '0 8px 22px rgba(25,118,210,0.12)' : 'none',
-                                transition: 'transform 150ms ease, box-shadow 150ms ease',
-                                '&:hover': { transform: 'translateY(-4px)' }
+                                justifySelf: 'center'
                               }}
                             >
-                              <CardMedia
-                                component={item.MediaType === 'image' ? 'img' : 'video'}
-                                src={item.MediaPath}
-                                alt={item.MediaName || ''}
+                              <Box
+                                component="button"
+                                type="button"
+                                onClick={() => handleSelectPlaylist(item)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') handleSelectPlaylist(item);
+                                }}
                                 sx={{
                                   width: '100%',
-                                  height: '100%',
-                                  objectFit: 'cover',
-                                  display: 'block',
-                                  pointerEvents: 'none',
                                   aspectRatio: '1 / 1',
-                                  minHeight: 0,
-                                  minWidth: 0
-                                }}
-                                controls={item.MediaType !== 'image'}
-                              />
-
-                              {/* top-left selection badges */}
-                              <Box sx={{ position: 'absolute', top: 8, left: 8, zIndex: 12, display: 'flex', gap: 1, alignItems: 'center' }}>
-                                {badges.length === 0 ? (
-                                  <Box sx={{ width: 26, height: 26, borderRadius: 0, border: (theme) => `2px solid rgba(255,255,255,0.85)`, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-                                ) : (
-                                  <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                    {badges.map((b) => (
-                                      <Box
-                                        key={b.SelectionId}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          removeSelection(b.SelectionId);
-                                        }}
-                                        title={`Remove selection #${b.orderNumber}`}
-                                        sx={{
-                                          minWidth: 28,
-                                          height: 28,
-                                          borderRadius: 0,
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          fontWeight: 700,
-                                          fontSize: 12,
-                                          color: (theme) => theme.palette.common.white,
-                                          border: (theme) => `2px solid ${theme.palette.primary.main}`,
-                                          backgroundColor: (theme) => theme.palette.primary.main,
-                                          boxShadow: '0 3px 8px rgba(25,118,210,0.22)',
-                                          cursor: 'pointer',
-                                          userSelect: 'none'
-                                        }}
-                                      >
-                                        {b.orderNumber}
-                                      </Box>
-                                    ))}
-                                  </Box>
-                                )}
-                              </Box>
-
-                              {/* media name overlay at bottom (black translucent background) */}
-                              <Box
-                                sx={{
-                                  position: 'absolute',
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  p: '8px',
-                                  background: 'rgba(0,0,0,0.65)',
-                                  color: '#fff',
-                                  fontSize: 13
+                                  position: 'relative',
+                                  borderRadius: `${panelRadius}px`,
+                                  overflow: 'hidden',
+                                  border: (theme) => `1px solid ${cardBorder}`,
+                                  cursor: 'pointer',
+                                  backgroundColor: 'background.paper',
+                                  padding: 0,
+                                  textAlign: 'left',
+                                  boxShadow: isSelected ? '0 8px 22px rgba(25,118,210,0.12)' : 'none',
+                                  transition: 'transform 150ms ease, box-shadow 150ms ease',
+                                  '&:hover': { transform: 'translateY(-4px)' }
                                 }}
                               >
-                                {item.MediaName || item.MediaPath || 'Untitled'}
+                                <Checkbox
+                                  checked={isSelected}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleSelectPlaylist(item);
+                                  }}
+                                  onChange={() => {}}
+                                  icon={
+                                    <Box
+                                      sx={{
+                                        width: 22,
+                                        height: 22,
+                                        borderRadius: 0,
+                                        border: '2px solid rgba(255,255,255,0.85)',
+                                        backgroundColor: 'rgba(255,255,255,0.08)'
+                                      }}
+                                    />
+                                  }
+                                  checkedIcon={
+                                    <Box
+                                      sx={(theme) => ({
+                                        width: 22,
+                                        height: 22,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: 700,
+                                        fontSize: 12,
+                                        color: '#fff',
+                                        borderRadius: 0,
+                                        backgroundColor: theme.palette.primary.main,
+                                        border: `2px solid ${theme.palette.primary.main}`
+                                      })}
+                                    >
+                                      {orderNumber}
+                                    </Box>
+                                  }
+                                  sx={{ position: 'absolute', left: 8, top: 8, zIndex: 20, padding: 0 }}
+                                />
+
+                                <CardMedia
+                                  component={item.MediaType === 'image' ? 'img' : 'video'}
+                                  src={item.MediaPath}
+                                  alt={item.MediaName || ''}
+                                  sx={{
+                                    width: '100%',
+                                    height: '100%',
+                                    objectFit: 'cover',
+                                    display: 'block',
+                                    pointerEvents: 'none',
+                                    aspectRatio: '1 / 1',
+                                    minHeight: 0,
+                                    minWidth: 0
+                                  }}
+                                  controls={item.MediaType !== 'image'}
+                                />
+
+                                {/* numbering is rendered inside the checked checkbox above; no separate badges */}
+                                <Box
+                                  sx={{
+                                    position: 'absolute',
+                                    left: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    p: '8px',
+                                    background: 'rgba(0,0,0,0.65)',
+                                    color: '#fff',
+                                    fontSize: 13
+                                  }}
+                                >
+                                  {item.MediaName || item.MediaPath || 'Untitled'}
+                                </Box>
                               </Box>
                             </Box>
-                          </Box>
-                        );
-                      })}
+                          );
+                        })}
+                    </Box>
                   </Box>
                 </Box>
 

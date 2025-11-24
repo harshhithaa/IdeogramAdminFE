@@ -174,6 +174,7 @@ const PlaylistList = (props) => {
           <PlaylistListToolbar
             onclick={() => setModal(true)}
             onsearch={(e) => setsearch(e)}
+            search={search}
             selectedPlaylist={selected}
           />
 

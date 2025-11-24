@@ -20,6 +20,48 @@ import {
 import PropTypes from 'prop-types';
 import PreviewModal from './PlaylistPreview';
 
+const pad2 = (n) => `${n < 10 ? '0' : ''}${n}`;
+
+const extractCreationValue = (item) => {
+  return (
+    item?.CreatedOn ||
+    item?.createdOn ||
+    item?.CreatedAt ||
+    item?.createdAt ||
+    item?.Created ||
+    item?.created ||
+    item?.CreatedOnUtc ||
+    null
+  );
+};
+
+const formatCreation = (value) => {
+  if (!value) return { date: '-', time: '-' };
+
+  let d;
+  if (typeof value === 'number') {
+    const asMs = value < 1e12 ? value * 1000 : value;
+    d = new Date(asMs);
+  } else if (typeof value === 'string') {
+    const msMatch = value.match(/\/Date\((\d+)(?:[+-]\d+)?\)\//);
+    if (msMatch) {
+      d = new Date(parseInt(msMatch[1], 10));
+    } else {
+      d = new Date(value);
+    }
+  } else if (value instanceof Date) {
+    d = value;
+  } else {
+    d = new Date(value);
+  }
+
+  if (Number.isNaN(d.getTime())) return { date: '-', time: '-' };
+
+  const date = `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()}`;
+  const time = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  return { date, time };
+};
+
 const PlaylistListResults = (props) => {
   const { playlists, search } = props || {};
   const [selectedPlaylistRefs, setSelectedPlaylistRefs] = useState([]);
@@ -79,7 +121,6 @@ const PlaylistListResults = (props) => {
   };
 
   const handlePlaylistPreview = () => {
-    console.log('handlePlaylistPreview');
     setshowPreviewModal(!showPreviewModal);
   };
 
@@ -89,7 +130,6 @@ const PlaylistListResults = (props) => {
         <Box sx={{ minWidth: 1050 }}>
           {showPreviewModal && <PreviewModal Media={Media} />}
           <Table>
-            {/* ✅ IMPROVED TABLE HEAD */}
             <TableHead>
               <TableRow
                 sx={{
@@ -97,7 +137,6 @@ const PlaylistListResults = (props) => {
                   borderBottom: '2px solid #ddd'
                 }}
               >
-                {/* ✅ Checkbox column - centered */}
                 <TableCell
                   padding="checkbox"
                   align="center"
@@ -124,7 +163,6 @@ const PlaylistListResults = (props) => {
                   </Box>
                 </TableCell>
 
-                {/* ✅ BOLD COLUMN HEADERS - LEFT ALIGNED */}
                 <TableCell
                   align="left"
                   sx={{
@@ -170,6 +208,7 @@ const PlaylistListResults = (props) => {
                   Preview
                 </TableCell>
 
+                {/* Replaced single Creation Date column with two columns: CREATION DATE and TIME */}
                 <TableCell
                   align="center"
                   sx={{
@@ -179,10 +218,25 @@ const PlaylistListResults = (props) => {
                     textTransform: 'uppercase',
                     letterSpacing: 0.5,
                     padding: '16px',
-                    width: '18%'
+                    width: '14%'
                   }}
                 >
                   Creation Date
+                </TableCell>
+
+                <TableCell
+                  align="center"
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    color: '#333',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    padding: '16px',
+                    width: '10%'
+                  }}
+                >
+                  Time
                 </TableCell>
 
                 <TableCell
@@ -202,153 +256,177 @@ const PlaylistListResults = (props) => {
               </TableRow>
             </TableHead>
 
-            {/* ✅ IMPROVED TABLE BODY */}
             <TableBody>
-              {playlists && playlists
-                .filter((item) => item.Name?.toLowerCase().includes(search?.toLowerCase()))
-                .slice(page * limit, page * limit + limit)
-                .map((Playlist) => (
-                  <TableRow
-                    hover
-                    key={Playlist.PlaylistRef}
-                    selected={
-                      selectedPlaylistRefs.indexOf(Playlist.PlaylistRef) !== -1
-                    }
-                    sx={{
-                      '&:hover': {
-                        backgroundColor: '#f9f9f9'
-                      },
-                      borderBottom: '1px solid #eee',
-                      height: 64
-                    }}
-                  >
-                    {/* ✅ Checkbox cell - centered */}
-                    <TableCell
-                      padding="checkbox"
-                      align="center"
-                      sx={{ padding: '12px 16px', width: '5%' }}
-                    >
-                      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-                        <Checkbox
-                          checked={
-                            selectedPlaylistRefs.indexOf(Playlist.PlaylistRef)
-                            !== -1
-                          }
-                          onChange={(event) => handleSelectOne(event, Playlist.PlaylistRef)}
-                          value="true"
-                        />
-                      </Box>
-                    </TableCell>
+              {(() => {
+                const filtered = playlists ? playlists.filter((item) =>
+                  item.Name?.toLowerCase().includes((search || '').toLowerCase())
+                ) : [];
 
-                    {/* ✅ Playlist Name - left aligned */}
-                    <TableCell
-                      align="left"
-                      onClick={() => props.view(Playlist)}
-                      sx={{
-                        padding: '16px',
-                        cursor: 'pointer',
-                        fontWeight: 500,
-                        color: '#1976d2',
-                        width: '20%',
-                        '&:hover': {
-                          textDecoration: 'underline'
+                if (!filtered.length) {
+                  return (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 6, color: 'text.secondary' }}>
+                        No matches found
+                      </TableCell>
+                    </TableRow>
+                  );
+                }
+
+                return filtered
+                  .slice(page * limit, page * limit + limit)
+                  .map((Playlist) => {
+                    const rawCreation = extractCreationValue(Playlist);
+                    const creation = formatCreation(rawCreation);
+
+                    return (
+                      <TableRow
+                        hover
+                        key={Playlist.PlaylistRef}
+                        selected={
+                          selectedPlaylistRefs.indexOf(Playlist.PlaylistRef) !== -1
                         }
-                      }}
-                    >
-                      <Typography color="textPrimary" variant="body2">
-                        {Playlist.Name}
-                      </Typography>
-                    </TableCell>
-
-                    {/* ✅ Description - left aligned */}
-                    <TableCell
-                      align="left"
-                      onClick={() => props.view(Playlist)}
-                      sx={{
-                        padding: '16px',
-                        cursor: 'pointer',
-                        color: '#666',
-                        fontSize: '0.9rem',
-                        width: '20%',
-                        '&:hover': {
-                          backgroundColor: '#fafafa'
-                        }
-                      }}
-                    >
-                      {Playlist.Description === 'null' ? '--' : Playlist.Description}
-                    </TableCell>
-
-                    {/* ✅ Preview - centered */}
-                    <TableCell
-                      align="center"
-                      sx={{ padding: '16px', width: '12%' }}
-                    >
-                      <Button
                         sx={{
-                          minWidth: 40,
-                          padding: '8px',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          margin: '0 auto',
-                          '&:hover': {
-                            backgroundColor: '#e3f2fd'
-                          }
-                        }}
-                        onClick={() => {
-                          setMedia(Playlist.Media);
-                          handlePlaylistPreview();
+                          '&:hover': { backgroundColor: '#f9f9f9' },
+                          borderBottom: '1px solid #eee',
+                          height: 64
                         }}
                       >
-                        <SvgIcon fontSize="small" color="primary">
-                          <AirplayIcon />
-                        </SvgIcon>
-                      </Button>
-                    </TableCell>
+                        <TableCell
+                          padding="checkbox"
+                          align="center"
+                          sx={{ padding: '12px 16px', width: '5%' }}
+                        >
+                          <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+                            <Checkbox
+                              checked={
+                                selectedPlaylistRefs.indexOf(Playlist.PlaylistRef)
+                                !== -1
+                              }
+                              onChange={(event) => handleSelectOne(event, Playlist.PlaylistRef)}
+                              value="true"
+                            />
+                          </Box>
+                        </TableCell>
 
-                    {/* ✅ Creation Date - centered */}
-                    <TableCell
-                      align="center"
-                      sx={{
-                        padding: '16px',
-                        color: '#999',
-                        fontSize: '0.9rem',
-                        width: '18%'
-                      }}
-                    >
-                      {Playlist.CreatedOn}
-                    </TableCell>
+                        <TableCell
+                          align="left"
+                          onClick={() => props.view(Playlist)}
+                          sx={{
+                            padding: '16px',
+                            cursor: 'pointer',
+                            fontWeight: 500,
+                            color: '#1976d2',
+                            width: '20%',
+                            '&:hover': {
+                              textDecoration: 'underline'
+                            }
+                          }}
+                        >
+                          <Typography color="textPrimary" variant="body2">
+                            {Playlist.Name}
+                          </Typography>
+                        </TableCell>
 
-                    {/* ✅ Edit - centered */}
-                    <TableCell
-                      align="center"
-                      sx={{ padding: '16px', width: '10%' }}
-                    >
-                      <Button
-                        sx={{
-                          minWidth: 40,
-                          padding: '8px',
-                          display: 'flex',
-                          justifyContent: 'center',
-                          margin: '0 auto',
-                          '&:hover': {
-                            backgroundColor: '#e3f2fd'
-                          }
-                        }}
-                        onClick={() => props.editcall(Playlist)}
-                      >
-                        <SvgIcon fontSize="small" color="primary">
-                          <EditIcon />
-                        </SvgIcon>
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                        <TableCell
+                          align="left"
+                          onClick={() => props.view(Playlist)}
+                          sx={{
+                            padding: '16px',
+                            cursor: 'pointer',
+                            color: '#666',
+                            fontSize: '0.9rem',
+                            width: '20%',
+                            '&:hover': {
+                              backgroundColor: '#fafafa'
+                            }
+                          }}
+                        >
+                          {Playlist.Description === 'null' ? '--' : Playlist.Description}
+                        </TableCell>
+
+                        <TableCell
+                          align="center"
+                          sx={{ padding: '16px', width: '12%' }}
+                        >
+                          <Button
+                            sx={{
+                              minWidth: 40,
+                              padding: '8px',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              margin: '0 auto',
+                              '&:hover': {
+                                backgroundColor: '#e3f2fd'
+                              }
+                            }}
+                            onClick={() => {
+                              setMedia(Playlist.Media);
+                              handlePlaylistPreview();
+                            }}
+                          >
+                            <SvgIcon fontSize="small" color="primary">
+                              <AirplayIcon />
+                            </SvgIcon>
+                          </Button>
+                        </TableCell>
+
+                        {/* CREATION DATE - centered, formatted DD/MM/YYYY */}
+                        <TableCell
+                          align="center"
+                          sx={{
+                            padding: '16px',
+                            color: '#999',
+                            fontSize: '0.9rem',
+                            width: '14%'
+                          }}
+                        >
+                          {creation.date}
+                        </TableCell>
+
+                        {/* TIME - centered, formatted HH:mm */}
+                        <TableCell
+                          align="center"
+                          sx={{
+                            padding: '16px',
+                            color: '#999',
+                            fontSize: '0.9rem',
+                            width: '10%'
+                          }}
+                        >
+                          {creation.time}
+                        </TableCell>
+
+                        <TableCell
+                          align="center"
+                          sx={{ padding: '16px', width: '10%' }}
+                        >
+                          <Button
+                            sx={{
+                              minWidth: 40,
+                              padding: '8px',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              margin: '0 auto',
+                              '&:hover': {
+                                backgroundColor: '#e3f2fd'
+                              }
+                            }}
+                            onClick={() => props.editcall(Playlist)}
+                          >
+                            <SvgIcon fontSize="small" color="primary">
+                              <EditIcon />
+                            </SvgIcon>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  });
+              })()}
             </TableBody>
           </Table>
         </Box>
       </PerfectScrollbar>
 
-      {/* ✅ IMPROVED PAGINATION */}
       <TablePagination
         component="div"
         count={playlists && playlists.length}

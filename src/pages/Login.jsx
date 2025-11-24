@@ -140,7 +140,7 @@ const Login = (props) => {
                 maxWidth: '300px'
               }}
             >
-              Manage your digital displays with ease. Control content, schedules, and monitoring from one central platform.
+              Manage your digital displays with ease. Control content, schedules, and monitors from one central platform.
             </Typography>
           </Box>
         </Box>

@@ -170,6 +170,7 @@ const ScheduleList = (props) => {
           </Modal>
           <ScheduleListToolbar
             onsearch={(e) => setsearch(e)}
+            search={search}
             onclick={() => setModal(true)}
             selectedSchedules={selected}
           />
