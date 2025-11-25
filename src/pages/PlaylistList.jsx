@@ -109,68 +109,71 @@ const PlaylistList = (props) => {
       <Box
         sx={{
           backgroundColor: 'background.default',
-          minHeight: '100%',
-          py: 3
-        }}
-      >
-        <Container maxWidth={false}>
-          <Modal
-            open={showmodal}
-            onClose={() => setModal(false)}
-            aria-labelledby="modal-modal-title"
-            aria-describedby="modal-modal-description"
-          >
-            <Box sx={style}>
-              <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
-                Are you sure you want to delete?
-              </h4>
-              <Grid container spacing={2}>
-                <Grid item>
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={() => deleteplaylist()}
-                  >
-                    Yes{' '}
-                  </Button>
-                </Grid>
-                <Grid item>
-                  <Button
-                    variant="contained"
-                    color="error"
-                    onClick={() => setModal(false)}
-                  >
-                    No{' '}
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
-          </Modal>
+          height: '100%',                 // fill available layout height
+          display: 'flex',
+          flexDirection: 'column',
+          py: 3,
+          boxSizing: 'border-box'
+         }}
+       >
+        <Container maxWidth={false} sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+           <Modal
+             open={showmodal}
+             onClose={() => setModal(false)}
+             aria-labelledby="modal-modal-title"
+             aria-describedby="modal-modal-description"
+           >
+             <Box sx={style}>
+               <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
+                 Are you sure you want to delete?
+               </h4>
+               <Grid container spacing={2}>
+                 <Grid item>
+                   <Button
+                     variant="contained"
+                     color="success"
+                     onClick={() => deleteplaylist()}
+                   >
+                     Yes{' '}
+                   </Button>
+                 </Grid>
+                 <Grid item>
+                   <Button
+                     variant="contained"
+                     color="error"
+                     onClick={() => setModal(false)}
+                   >
+                     No{' '}
+                   </Button>
+                 </Grid>
+               </Grid>
+             </Box>
+           </Modal>
 
-          <Modal
-            open={showErrModal}
-            onClose={() => setErrModal(false)}
-            aria-labelledby="modal-modal-title"
-            aria-describedby="modal-modal-description"
-          >
-            <Box sx={style}>
-              <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
-                Cannot delete this playlist as it running in{' '}
-                {schedule.map((schedule) => schedule)} schedule
-              </h4>
-              <Grid container spacing={1}>
-                <Grid item>
-                  <Button
-                    variant="contained"
-                    color="success"
-                    onClick={() => (setErrModal(false), setSchedules([]))}
-                  >
-                    Ok
-                  </Button>
-                </Grid>
-              </Grid>
-            </Box>
-          </Modal>
+           <Modal
+             open={showErrModal}
+             onClose={() => setErrModal(false)}
+             aria-labelledby="modal-modal-title"
+             aria-describedby="modal-modal-description"
+           >
+             <Box sx={style}>
+               <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
+                 Cannot delete this playlist as it running in{' '}
+                 {schedule.map((schedule) => schedule)} schedule
+               </h4>
+               <Grid container spacing={1}>
+                 <Grid item>
+                   <Button
+                     variant="contained"
+                     color="success"
+                     onClick={() => (setErrModal(false), setSchedules([]))}
+                   >
+                     Ok
+                   </Button>
+                 </Grid>
+               </Grid>
+             </Box>
+           </Modal>
           <PlaylistListToolbar
             onclick={() => setModal(true)}
             onsearch={(e) => setsearch(e)}
@@ -178,7 +181,8 @@ const PlaylistList = (props) => {
             selectedPlaylist={selected}
           />
 
-          <Box sx={{ pt: 3 }}>
+          {/* results area — internal scroll only */}
+          <Box sx={{ pt: 3, flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
             <PlaylistListResults
               search={search}
               playlists={playlists}
@@ -195,8 +199,8 @@ const PlaylistList = (props) => {
               }
             />
           </Box>
-        </Container>
-      </Box>
+         </Container>
+       </Box>
     </>
   );
 };

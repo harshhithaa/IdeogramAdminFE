@@ -90,6 +90,9 @@ const SaveMonitorDetails = (props) => {
   const max = 60;
   const step = 5;
 
+  // consistent control width for all form inputs
+  const controlWidth = { xs: '100%', sm: '720px' };
+  
   useEffect(() => {
     const data = {
       componenttype: COMPONENTS.Playlist
@@ -403,6 +406,7 @@ const SaveMonitorDetails = (props) => {
       <Helmet>
         <title>Schedule | Ideogram</title>
       </Helmet>
+
       <Box
         sx={{
           backgroundColor: 'background.default',
@@ -422,179 +426,231 @@ const SaveMonitorDetails = (props) => {
             {clashingSchedulesError} Schedules Are Clashing
           </Alert>
         </Snackbar>
-        <Container maxWidth="sm">
-          <Formik
-            initialValues={{
-              title: '',
-              description: '',
-              playlist: '',
-              startTime: '',
-              endTime: '',
-              startDate: '',
-              endDate: '',
-              fixedTimePlayback: false,
-              days: []
-            }}
-            onSubmit={() => {
-              navigate('/app/monitors', { replace: true });
+
+        {/* Centered content area with equal horizontal margins and lifted heading */}
+        <Container
+          maxWidth="md"
+          sx={{
+            height: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
+            py: 3,
+            boxSizing: 'border-box'
+          }}
+        >
+          {/* Constrain form width and visually separate from page edges */}
+          <Box
+            sx={{
+              width: '100%',
+              maxWidth: 880,
+              bgcolor: 'background.paper',
+              borderRadius: 2,
+              p: { xs: 2, sm: 4 },
+              boxShadow: 1
             }}
           >
-            {({ errors, handleBlur, handleSubmit, isSubmitting, touched }) => (
-              <form onSubmit={handleSubmit}>
-                <Box sx={{ mb: 3 }}>
-                  <Typography color="textPrimary" variant="h2">
-                    {type} Monitor
-                  </Typography>
-                </Box>
-                <TextField
-                  error={Boolean(touched.title && errors.title)}
-                  fullWidth
-                  helperText={touched.title && errors.title}
-                  label="Title"
-                  margin="normal"
-                  name="title"
-                  onBlur={handleBlur}
-                  onChange={(e) => {
-                    setTitle(e.target.value);
-                  }}
-                  value={title}
-                  variant="outlined"
-                />
-                <TextField
-                  error={Boolean(touched.description && errors.description)}
-                  fullWidth
-                  helperText={touched.description && errors.description}
-                  label="Description"
-                  margin="normal"
-                  name="description"
-                  onBlur={handleBlur}
-                  onChange={(e) => {
-                    setDescription(e.target.value);
-                  }}
-                  value={description}
-                  variant="outlined"
-                />
-                <InputLabel id="select-playlist">Default Playlist</InputLabel>
-                <Select
-                  labelId="select-playlist"
-                  id="select-playlist"
-                  value={selectedPlaylist}
-                  label="playlist"
-                  onChange={(e) => {
-                    console.log('e.target.value', e.target.value);
-                    setSelectedPlaylist(e.target.value);
-                  }}
-                >
-                  {playlistData && playlistData.length > 0 ? (
-                    playlistData.map((item) => (
-                      <MenuItem value={item.PlaylistRef}>
-                        {`${item.Name}`}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem>{'No Items available'}</MenuItem>
-                  )}
-                </Select>
-                <Box>
-                  <InputLabel id="select-schedule">Schedule</InputLabel>
-                  <Select
-                    labelId="select-schedule"
-                    id="select-schedule"
-                    multiple
-                    value={selectedSchedule}
-                    label="schedule"
-                    renderValue={(selected) => (
-                      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-                        {selected.map((value, index) => (
-                          <Chip
-                            key={index}
-                            label={`${value.Title} (${value.StartTime} - ${value.EndTime}) (${value.StartDate} - ${value.EndDate})`}
-                            style={{ margin: 2 }}
-                            clickable
-                            onDelete={(e) => handleRemoveSchedule(e, value)}
-                            deleteIcon={
-                              <CancelRounded
-                                onMouseDown={(event) => event.stopPropagation()}
-                              />
-                            }
-                          />
-                        ))}
-                      </div>
-                    )}
-                    onChange={handleChange}
-                  >
-                    {scheduleData && scheduleData.length > 0 ? (
-                      scheduleData.map((item) => {
-                        if (
-                          !IsValuePresentInArray(
-                            selectedSchedule,
-                            'ScheduleRef',
-                            item.ScheduleRef
-                          )
-                        ) {
-                          return (
-                            <MenuItem value={item}>{`${item.Title}`}</MenuItem>
-                          );
-                        }
-                      })
-                    ) : (
-                      <MenuItem>No Items available</MenuItem>
-                    )}
-                  </Select>
-                </Box>
-                <InputLabel id="select-orientation">
-                  Select Orientation
-                </InputLabel>
-                <Select
-                  labelId="select-orientation"
-                  id="select-orientation"
-                  value={orientation}
-                  label="orientation"
-                  onChange={(e) => {
-                    console.log('e.target.value', e.target.value);
-                    setOrientation(e.target.value);
-                  }}
-                >
-                  {orientations.map((value) => (
-                    <MenuItem value={value}>{value}</MenuItem>
-                  ))}
-                </Select>
-                <InputLabel id="select-slide-interval">
-                  Select Slide Interval (in seconds)
-                </InputLabel>
-                <TextField
-                  type="number"
-                  id="select-slide-interval"
-                  value={slideTime}
-                  inputProps={{ min, max, step }}
-                  onChange={(e) => {
-                    setSlideTime(e.target.value);
-                  }}
-                />
-                {box ? (
-                  <Stack sx={{ width: '100%' }} spacing={2}>
-                    <Alert severity={color}>{boxMessage}</Alert>
-                  </Stack>
-                ) : null}
+            <Formik
+              initialValues={{
+                title: '',
+                description: '',
+                playlist: '',
+                startTime: '',
+                endTime: '',
+                startDate: '',
+                endDate: '',
+                fixedTimePlayback: false,
+                days: []
+              }}
+              onSubmit={() => {
+                navigate('/app/monitors', { replace: true });
+              }}
+            >
+              {({ errors, handleBlur, handleSubmit, isSubmitting, touched }) => (
+                <form onSubmit={handleSubmit}>
+                  <Box sx={{ mb: 3, mt: 1 }}>
+                    {/* Heading moved slightly down, now centered */}
+                    <Typography color="textPrimary" variant="h4" sx={{ fontWeight: 700, textAlign: 'center' }}>
+                      {type} Monitor
+                    </Typography>
+                  </Box>
 
-                <Box sx={{ py: 2 }}>
-                  <Button
-                    color="primary"
-                    fullWidth
-                    size="large"
-                    // type="submit"
-                    variant="contained"
-                    onClick={() => {
-                      handleDateAndTime();
-                    }}
-                    disabled={slideTime < 5 || slideTime > 60}
-                  >
-                    {type} Monitor
-                  </Button>
-                </Box>
-              </form>
-            )}
-          </Formik>
+                  {/* Use a vertical stack via Box with consistent spacing for controls.
+                      All controls share the same visual width via controlWidth. */}
+                  <Box sx={{ display: 'grid', gap: 2, justifyItems: 'center' }}>
+                    <Box sx={{ width: controlWidth }}>
+                      <TextField
+                        error={Boolean(touched.title && errors.title)}
+                        fullWidth
+                        helperText={touched.title && errors.title}
+                        label="Title"
+                        margin="none"
+                        name="title"
+                        onBlur={handleBlur}
+                        onChange={(e) => setTitle(e.target.value)}
+                        value={title}
+                        variant="outlined"
+                        size="small"
+                        InputLabelProps={{ sx: { fontWeight: 600 } }}
+                      />
+                    </Box>
+
+                    <Box sx={{ width: controlWidth }}>
+                      <TextField
+                        error={Boolean(touched.description && errors.description)}
+                        fullWidth
+                        helperText={touched.description && errors.description}
+                        label="Description"
+                        margin="none"
+                        name="description"
+                        onBlur={handleBlur}
+                        onChange={(e) => setDescription(e.target.value)}
+                        value={description}
+                        variant="outlined"
+                        size="small"
+                        InputLabelProps={{ sx: { fontWeight: 600 } }}
+                      />
+                    </Box>
+
+                    <Box sx={{ width: controlWidth }}>
+                      <InputLabel id="select-playlist" sx={{ fontWeight: 600, mb: 1, display: 'block' }}>
+                        Default Playlist
+                      </InputLabel>
+                      <Select
+                        labelId="select-playlist"
+                        id="select-playlist"
+                        value={selectedPlaylist}
+                        label="playlist"
+                        onChange={(e) => setSelectedPlaylist(e.target.value)}
+                        size="small"
+                        fullWidth
+                        sx={{ borderRadius: 1, '& .MuiSelect-select': { padding: '10px 12px' } }}
+                        MenuProps={{ PaperProps: { sx: { maxHeight: 300 } } }}
+                      >
+                        {playlistData && playlistData.length > 0 ? (
+                          playlistData.map((item) => (
+                            <MenuItem key={item.PlaylistRef} value={item.PlaylistRef}>
+                              {item.Name}
+                            </MenuItem>
+                          ))
+                        ) : (
+                          <MenuItem>No Items available</MenuItem>
+                        )}
+                      </Select>
+                    </Box>
+
+                    <Box sx={{ width: controlWidth }}>
+                      <InputLabel id="select-schedule" sx={{ fontWeight: 600, mb: 1 }}>
+                        Schedule
+                      </InputLabel>
+                      <Select
+                        labelId="select-schedule"
+                        id="select-schedule"
+                        multiple
+                        value={selectedSchedule}
+                        renderValue={(selected) => (
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                            {selected.map((value, index) => (
+                              <Chip
+                                key={index}
+                                label={`${value.Title} (${value.StartTime} - ${value.EndTime}) (${value.StartDate} - ${value.EndDate})`}
+                                style={{ margin: 2 }}
+                                clickable
+                                onDelete={(e) => handleRemoveSchedule(e, value)}
+                                deleteIcon={<CancelRounded onMouseDown={(event) => event.stopPropagation()} />}
+                              />
+                            ))}
+                          </div>
+                        )}
+                        onChange={handleChange}
+                        size="small"
+                        fullWidth
+                        sx={{ '& .MuiSelect-select': { minHeight: 40 } }}
+                      >
+                        {scheduleData && scheduleData.length > 0 ? (
+                          scheduleData.map((item) => {
+                            if (!IsValuePresentInArray(selectedSchedule, 'ScheduleRef', item.ScheduleRef)) {
+                              return (
+                                <MenuItem key={item.ScheduleRef} value={item}>
+                                  {item.Title}
+                                </MenuItem>
+                              );
+                            }
+                            return null;
+                          })
+                        ) : (
+                          <MenuItem>No Items available</MenuItem>
+                        )}
+                      </Select>
+                    </Box>
+
+                    <Box sx={{ width: controlWidth, display: 'flex', gap: 2 }}>
+                      <Box sx={{ flex: 1 }}>
+                        <InputLabel id="select-orientation" sx={{ fontWeight: 600, mb: 1 }}>
+                          Select Orientation
+                        </InputLabel>
+                        <Select
+                          labelId="select-orientation"
+                          id="select-orientation"
+                          value={orientation}
+                          label="orientation"
+                          onChange={(e) => setOrientation(e.target.value)}
+                          size="small"
+                          fullWidth
+                          sx={{ '& .MuiSelect-select': { minHeight: 40 } }}
+                        >
+                          {orientations.map((value) => (
+                            <MenuItem key={value} value={value}>
+                              {value}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </Box>
+
+                      <Box sx={{ flex: 1 }}>
+                        <InputLabel id="select-slide-interval" sx={{ fontWeight: 600, mb: 1 }}>
+                          Slide Interval (seconds)
+                        </InputLabel>
+                        <TextField
+                          type="number"
+                          id="select-slide-interval"
+                          value={slideTime}
+                          inputProps={{ min, max, step }}
+                          onChange={(e) => setSlideTime(e.target.value)}
+                          size="small"
+                          fullWidth
+                          variant="outlined"
+                        />
+                      </Box>
+                    </Box>
+                    
+                    {/* end controls */}
+
+                    {box ? (
+                      <Stack sx={{ width: '100%' }} spacing={2}>
+                        <Alert severity={color}>{boxMessage}</Alert>
+                      </Stack>
+                    ) : null}
+
+                    <Box sx={{ py: 2 }}>
+                      <Button
+                        color="primary"
+                        fullWidth
+                        size="large"
+                        variant="contained"
+                        onClick={() => {
+                          handleDateAndTime();
+                        }}
+                        disabled={slideTime < 5 || slideTime > 60}
+                      >
+                        {type} Monitor
+                      </Button>
+                    </Box>
+                  </Box>
+                </form>
+              )}
+            </Formik>
+          </Box>
         </Container>
       </Box>
     </>

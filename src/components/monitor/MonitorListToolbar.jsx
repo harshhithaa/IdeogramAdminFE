@@ -18,7 +18,8 @@ import {
   Alert,
   Modal,
   Grid,
-  OutlinedInput
+  OutlinedInput,
+  Tooltip
 } from '@mui/material';
 import { useEffect, useState } from 'react';
 import { Search as SearchIcon, Trash2 as Trash2Icon } from 'react-feather';
@@ -70,9 +71,11 @@ const MonitorListToolbar = (props) => {
     });
   };
 
+  // helper to show selected playlist name
+  const selectedPlaylistName = props.playlistList?.find((p) => p.PlaylistRef === selectedPlaylist)?.Name || '';
+
   return (
     (() => {
-      // ✅ FIX APPLIED HERE — NOTHING ELSE CHANGED
       const { selectedItems, ...rest } = props;
 
       return (
@@ -99,106 +102,146 @@ const MonitorListToolbar = (props) => {
             </Alert>
           </Snackbar>
 
-          <Box sx={{ mt: 3 }}>
-            <Modal
-              open={showmodal}
-              onClose={() => setModal(false)}
-              aria-labelledby="modal-modal-title"
-              aria-describedby="modal-modal-description"
-            >
-              <Box sx={style}>
-                <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
-                  Are you sure you want to Push to the Selected Monitors?
-                </h4>
-                <Grid container spacing={2}>
-                  <Grid item>
+          {/* Toolbar: single-row, no white Card background; matched spacing & sizes */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              maxWidth: '100%',
+              pr: 1,
+              mt: 2,
+              mb: 1
+            }}
+          >
+            <TextField
+              size="small"
+              value={props.search || ''}
+              onChange={(e) => props.onSearch && props.onSearch(e.target.value)}
+              placeholder="Search Monitor"
+              sx={{ width: 220, bgcolor: 'transparent', mr: 2 }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SvgIcon fontSize="small" color="action">
+                      <SearchIcon />
+                    </SvgIcon>
+                  </InputAdornment>
+                )
+              }}
+              variant="outlined"
+              aria-label="Search monitor"
+            />
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              {/* <Typography fontSize={16} sx={{ display: { xs: 'none', sm: 'block' } }}>
+                Select Playlist:
+              </Typography> */}
+
+              <Select
+                labelId="select-playlist"
+                id="select-playlist"
+                value={selectedPlaylist}
+                onChange={(e) => setSelectedPlaylist(e.target.value)}
+                displayEmpty
+                size="small"
+                renderValue={(value) => {
+                  if (!value) {
+                    return <span style={{ color: 'rgba(0,0,0,0.6)', fontSize: '0.95rem' }}>Select Default Playlist</span>;
+                  }
+                  return selectedPlaylistName;
+                }}
+                sx={{
+                  height: 40,
+                  minWidth: 220,
+                  bgcolor: 'transparent',
+                  borderRadius: 1,
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  '& .MuiSelect-select': {
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '8px 12px',
+                    fontSize: '0.95rem'
+                  }
+                }}
+                aria-label="Select default playlist"
+              >
+                {/* placeholder option for keyboard / accessibility */}
+                <MenuItem value="">
+                  <em>Select playlist</em>
+                </MenuItem>
+                {props.playlistList?.map((playlist) => (
+                  <MenuItem key={playlist.PlaylistRef} value={playlist.PlaylistRef}>
+                    {playlist.Name}
+                  </MenuItem>
+                ))}
+              </Select>
+
+              {/* Tooltip shown only when no monitors are selected */}
+              {(!props.selectedMonitorList || props.selectedMonitorList.length === 0) ? (
+                <Tooltip title="Select monitors and a default playlist" arrow>
+                  <span>
                     <Button
-                      variant="contained"
-                      color="success"
-                      onClick={() => handlePushToAll()}
-                    >
-                      Yes{" "}
-                    </Button>
-                  </Grid>
-                  <Grid item>
-                    <Button
-                      variant="contained"
-                      color="error"
-                      onClick={() => setModal(false)}
-                    >
-                      No{" "}
-                    </Button>
-                  </Grid>
-                </Grid>
-              </Box>
-            </Modal>
-
-            <Card>
-              <CardContent>
-                <Grid
-                  container
-                  justifyContent={"space-between"}
-                  columnGap={2}
-                  alignItems="center"
-                >
-                  <Grid item md={4} lg={4} sx={{ marginBottom: 2 }}>
-                    <TextField
-                      fullWidth
-                      onChange={(e) => props.onsearch(e.target.value)}
-                      InputProps={{
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <SvgIcon fontSize="small" color="action">
-                              <SearchIcon />
-                            </SvgIcon>
-                          </InputAdornment>
-                        ),
-                      }}
-                      placeholder="Search Monitor"
-                      variant="outlined"
-                    />
-                  </Grid>
-
-                  <Grid item container md={6} lg={6} alignItems={"center"} gap={2}>
-                    <Typography fontSize={16}>Select Playlist:</Typography>
-
-                    <Select
-                      labelId="select-playlist"
-                      id="select-playlist"
-                      value={selectedPlaylist}
-                      label="Select Playlist"
-                      onChange={(e) => {
-                        console.log("e.target.value", e.target.value);
-                        setSelectedPlaylist(e.target.value);
-                      }}
-                      sx={{ height: 40 }}
-                      autoWidth
-                    >
-                      {props.playlistList?.map((playlist) => (
-                        <MenuItem value={playlist.PlaylistRef}>
-                          {playlist.Name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-
-                    <Button
-                      onClick={() => {
-                        setModal(true);
-                      }}
+                      onClick={() => { setModal(true); }}
                       color="primary"
                       variant="contained"
                       disabled={
-                        selectedPlaylist == "" ||
-                        props.selectedMonitorList.length == 0
+                        selectedPlaylist === "" ||
+                        !props.selectedMonitorList ||
+                        props.selectedMonitorList.length === 0
                       }
                     >
                       Push To Monitors
                     </Button>
-                  </Grid>
-                </Grid>
-              </CardContent>
-            </Card>
+                  </span>
+                </Tooltip>
+              ) : (
+                <Button
+                  onClick={() => { setModal(true); }}
+                  color="primary"
+                  variant="contained"
+                  disabled={selectedPlaylist === ""}
+                >
+                  Push To Monitors
+                </Button>
+              )}
+            </Box>
           </Box>
+
+          {/* Modal remains unchanged */}
+          <Modal
+            open={showmodal}
+            onClose={() => setModal(false)}
+            aria-labelledby="modal-modal-title"
+            aria-describedby="modal-modal-description"
+          >
+            <Box sx={style}>
+              <h4 id="parent-modal-title" style={{ marginBottom: 20 }}>
+                Are you sure you want to Push to the Selected Monitors?
+              </h4>
+              <Grid container spacing={2}>
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    color="success"
+                    onClick={() => handlePushToAll()}
+                  >
+                    Yes{" "}
+                  </Button>
+                </Grid>
+                <Grid item>
+                  <Button
+                    variant="contained"
+                    color="error"
+                    onClick={() => setModal(false)}
+                  >
+                    No{" "}
+                  </Button>
+                </Grid>
+              </Grid>
+            </Box>
+          </Modal>
         </Box>
       );
     })()

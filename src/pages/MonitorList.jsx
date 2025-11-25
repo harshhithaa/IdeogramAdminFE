@@ -84,11 +84,14 @@ const MonitorList = (props) => {
       <Box
         sx={{
           backgroundColor: 'background.default',
-          minHeight: '100%',
-          py: 3
+          height: '100%',                 // fill available layout height
+          display: 'flex',
+          flexDirection: 'column',
+          py: 3,
+          boxSizing: 'border-box'
         }}
       >
-        <Container maxWidth={false}>
+        <Container maxWidth={false} sx={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <Modal
             open={showmodal}
             onClose={() => setModal(false)}
@@ -106,7 +109,7 @@ const MonitorList = (props) => {
                     color="success"
                     onClick={() => deleteplaylist()}
                   >
-                    Yes{' '}
+                    Yes
                   </Button>
                 </Grid>
                 <Grid item>
@@ -115,21 +118,24 @@ const MonitorList = (props) => {
                     color="error"
                     onClick={() => setModal(false)}
                   >
-                    No{' '}
+                    No
                   </Button>
                 </Grid>
               </Grid>
             </Box>
           </Modal>
-<MonitorListToolbar
-  onSearch={(e) => setsearch(e)}
-  onDeleteClick={() => setModal(true)}
-  playlistList={monitorlist?.playlistList}
-  monitorList={monitorlist?.list}
-  selectedMonitorList={selected}
-/>
 
-          <Box sx={{ pt: 3 }}>
+          <MonitorListToolbar
+            onSearch={(e) => setsearch(e)}
+            search={search}
+            onDeleteClick={() => setModal(true)}
+            playlistList={monitorlist?.playlistList}
+            monitorList={monitorlist?.list}
+            selectedMonitorList={selected}
+          />
+
+          {/* results area — internal scroll only */}
+          <Box sx={{ pt: 3, flex: '1 1 auto', minHeight: 0, overflow: 'auto' }}>
             <MonitorListResults
               setselected={setselected}
               search={search}

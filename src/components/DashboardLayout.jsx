@@ -7,19 +7,22 @@ import DashboardSidebar from './DashboardSidebar';
 const DashboardLayoutRoot = styled('div')(({ theme }) => ({
   backgroundColor: theme.palette.background.default,
   display: 'flex',
-  height: '100%',
-  overflow: 'hidden',
-  width: '100%'
+  flexDirection: 'row',
+  height: '100vh',       // fixed to viewport
+  width: '100%',
+  overflow: 'hidden'     // prevent page-level scrolling
 }));
 
 const DashboardLayoutWrapper = styled('div')(({ theme }) => ({
   display: 'flex',
   flex: '1 1 auto',
-  overflow: 'hidden',
+  flexDirection: 'column',
+  overflow: 'hidden',    // inner content should not cause outer scroll
   paddingTop: 64,
   [theme.breakpoints.up('lg')]: {
     paddingLeft: 256
-  }
+  },
+  boxSizing: 'border-box'
 }));
 
 const DashboardLayoutContainer = styled('div')({
@@ -31,7 +34,7 @@ const DashboardLayoutContainer = styled('div')({
 const DashboardLayoutContent = styled('div')({
   flex: '1 1 auto',
   height: '100%',
-  overflow: 'auto'
+  overflow: 'hidden'    // components inside must handle their own scroll
 });
 
 const DashboardLayout = () => {
@@ -56,3 +59,10 @@ const DashboardLayout = () => {
 };
 
 export default DashboardLayout;
+
+export {
+  DashboardLayoutRoot,
+  DashboardLayoutWrapper,
+  DashboardLayoutContainer,
+  DashboardLayoutContent
+};

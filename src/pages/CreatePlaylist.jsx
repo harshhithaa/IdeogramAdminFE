@@ -17,10 +17,10 @@ const CreatePlaylist = (props) => {
   const navigate = useNavigate();
   const { state } = useLocation();
   const [type] = useState(
-    state && state.type == 'View'
+    state && state.type === 'View'
       ? 'View'
-      : state && state.type == 'Edit'
-      ? 'Update'
+      : state && state.type === 'Edit'
+      ? 'Edit'   // show "Edit Playlist" instead of "Update Playlist"
       : 'Create'
   );
 
@@ -154,34 +154,34 @@ const CreatePlaylist = (props) => {
             display: 'flex',
             flexDirection: 'column',
             py: 2,
-            overflow: 'hidden'
+            overflow: 'visible' // allow the footer button (moved below) to be visible
           }}
         >
           <Formik initialValues={{ title, description }}>
             {({ errors, handleBlur, handleSubmit, touched }) => (
               <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
                 {/* Top area - heading and fields */}
-                <Box sx={{ flex: '0 0 auto', mb: 2, py: 1 }}>
+                <Box sx={{ flex: '0 0 auto', mb: 1, py: 0.5 }}>
                   {/* Heading styled similar to "Create Split Screen" */}
-                  <Typography variant="h4" sx={{ textAlign: 'left', fontWeight: 700, mb: 2 }}>
+                  <Typography variant="h4" sx={{ textAlign: 'left', fontWeight: 700, mb: 1 }}>
                     {type} Playlist
                   </Typography>
 
-                  <Grid container spacing={2}>
+                  <Grid container spacing={1}>
                     <Grid item xs={12} md={6}>
                       <TextField
                         error={Boolean(touched.title && errors.title)}
                         fullWidth
                         helperText={touched.title && errors.title}
                         label="Title"
-                        margin="normal"
+                        margin="dense"
                         name="title"
                         onBlur={handleBlur}
                         onChange={(e) => setTitle(e.target.value)}
                         value={title}
                         variant="outlined"
                         InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 550, fontSize: '1rem' } }}
-                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1rem', lineHeight: 1.2 } }}
+                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1rem', lineHeight: 1.2 }, mt: 0.5 }}
                       />
                     </Grid>
 
@@ -191,14 +191,14 @@ const CreatePlaylist = (props) => {
                         fullWidth
                         helperText={touched.description && errors.description}
                         label="Description"
-                        margin="normal"
+                        margin="dense"
                         name="description"
                         onBlur={handleBlur}
                         onChange={(e) => setDescription(e.target.value)}
                         value={description}
                         variant="outlined"
                         InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 550, fontSize: '1rem' } }}
-                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1rem', lineHeight: 1.2 } }}
+                        sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1rem', lineHeight: 1.2 }, mt: 0.5 }}
                       />
                     </Grid>
                   </Grid>
@@ -207,20 +207,22 @@ const CreatePlaylist = (props) => {
                 {/* Media area - match Media page styling exactly */}
                 <Box sx={{
                   flex: '1 1 auto',
-                  pt: 2,
-                  pb: 2,
+                  pt: 1,
+                  pb: 1,
                   overflow: 'hidden'
                 }}>
                   {/* content wrapper matched to MediaList/MediaGrid */ }
                   <Box sx={{
                     borderRadius: `${panelRadius}px`,
                     backgroundColor: panelBg,
-                    p: 2,
+                    p: 1,
+                    position: 'relative',            // allow absolutely positioned button inside panel
                     border: `1px solid ${panelBorder}`,
                     mt: 0,
                     overflow: 'visible',
                     boxSizing: 'border-box',
-                    minHeight: 420
+                    /* allow the panel to size within the page so footer stays visible */
+                    minHeight: 'auto'
                   }}>
                     {/* internal grid uses same columns/spacing as Media page */}
                     <Box
@@ -232,10 +234,11 @@ const CreatePlaylist = (props) => {
                           md: 'repeat(4, 1fr)',
                           lg: 'repeat(5, 1fr)'
                         },
-                        gap: 2,
+                        gap: 1, /* keep existing grid spacing and per-item sizes */
                         width: '100%',
                         boxSizing: 'border-box',
-                        maxHeight: '60vh',
+                        /* keep a generous visible area but allow internal scrolling */
+                        maxHeight: { xs: '46vh', sm: '48vh', md: '54vh', lg: '58vh' },
                         overflowY: 'auto',
                         pr: 1
                       }}
@@ -366,11 +369,13 @@ const CreatePlaylist = (props) => {
                           );
                         })}
                     </Box>
+
+                    {/* removed absolute-positioned duplicate button so the single existing button below is used */}
                   </Box>
                 </Box>
-
-                {/* Footer - centered button */}
-                <Box sx={{ flex: '0 0 auto', display: 'flex', justifyContent: 'center', pt: 2 }}>
+ 
+                {/* existing primary action kept here — fully outside the media panel, non-overlapping */}
+                <Box sx={{ mt: 0.5, mb: 8.5, display: 'flex', justifyContent: 'center' }}>
                   <Button color="primary" size="large" type="button" variant="contained" onClick={() => savePlaylistDetails()}>
                     {type} Playlist
                   </Button>

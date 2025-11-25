@@ -1,38 +1,31 @@
-import createStyles from '@material-ui/styles/createStyles';
-import makeStyles from '@material-ui/styles/makeStyles';
+import React from 'react';
+import { GlobalStyles as MuiGlobalStyles } from '@mui/material';
 
-const useStyles = makeStyles(() => createStyles({
-  '@global': {
-    '*': {
-      boxSizing: 'border-box',
-      margin: 0,
-      padding: 0,
-    },
-    html: {
-      '-webkit-font-smoothing': 'antialiased',
-      '-moz-osx-font-smoothing': 'grayscale',
-      height: '100%',
-      width: '100%'
-    },
-    body: {
-      backgroundColor: '#f4f6f8',
-      height: '100%',
-      width: '100%'
-    },
-    a: {
-      textDecoration: 'none'
-    },
-    '#root': {
-      height: '100%',
-      width: '100%'
-    }
-  }
-}));
-
-const GlobalStyles = () => {
-  useStyles();
-
-  return null;
-};
-
-export default GlobalStyles;
+export default function GlobalStyles() {
+  return (
+    <MuiGlobalStyles
+      styles={{
+        html: {
+          height: '100%',
+          width: '100%'
+        },
+        body: {
+          height: '100%',
+          width: '100%',
+          margin: 0,
+          padding: 0,
+          overflow: 'hidden', /* remove page-level vertical scroll */
+          WebkitFontSmoothing: 'antialiased',
+          WebkitTapHighlightColor: 'transparent'
+        },
+        '#root': {
+          height: '100%',
+          width: '100%'
+        },
+        '*': {
+          boxSizing: 'border-box'
+        }
+      }}
+    />
+  );
+}
