@@ -10,10 +10,10 @@ import DesktopWindowsIcon from '@mui/icons-material/DesktopWindows';
 import { useNavigate } from 'react-router-dom';
 
 const cardConfig = [
-  { id: 'media', title: 'Media', to: '/app/media', Icon: PermMediaIcon, color: 'success' },
-  { id: 'playlist', title: 'Playlist', to: '/app/playlists', Icon: PlaylistPlayIcon, color: 'warning' },
-  { id: 'schedule', title: 'Schedule', to: '/app/schedules', Icon: CalendarTodayIcon, color: 'secondary' },
-  { id: 'monitors', title: 'Monitors', to: '/app/monitors', Icon: DesktopWindowsIcon, color: 'primary' }
+  { id: 'media', title: 'Media', to: '/app/media', Icon: PermMediaIcon, color: 'success', tagline: 'Manage all your media.' },
+  { id: 'playlist', title: 'Playlist', to: '/app/playlists', Icon: PlaylistPlayIcon, color: 'warning', tagline: 'Create and manage playlists.' },
+  { id: 'schedule', title: 'Schedule', to: '/app/schedules', Icon: CalendarTodayIcon, color: 'secondary', tagline: 'Set and manage schedules.' },
+  { id: 'monitors', title: 'Monitors', to: '/app/monitors', Icon: DesktopWindowsIcon, color: 'primary', tagline: 'Control all your monitors.' }
 ];
 
 const Dashboard = () => {
@@ -198,7 +198,7 @@ const Dashboard = () => {
                         whiteSpace: 'nowrap'
                       }}
                     >
-                      Quick access to {c.title.toLowerCase()}
+                      {c.tagline}
                     </Typography>
                   </Box>
                 </Box>
