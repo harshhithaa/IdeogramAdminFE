@@ -80,18 +80,25 @@ const SaveScheduleDetails = (props) => {
   const handleSubmit = (e) => {
     e && e.preventDefault();
     setLoading(true);
+
     const selectedDays = Object.keys(days).filter((k) => days[k]);
 
+    // Build payload to match backend Joi schema: saveScheduleRequest
     const payload = {
-      Title: title,
-      Description: description,
-      PlaylistRef: selectedPlaylist || null,
-      StartDate: startDate || null,
-      EndDate: endDate || null,
-      StartTime: startTime || null,
-      EndTime: endTime || null,
-      FixedTimePlayback: fixedTimePlayback,
-      Days: selectedDays
+      scheduleRef: null,
+      scheduleTitle: title || null,
+      description: description || null,
+      playlistRef: selectedPlaylist || null,
+      monitorRef: null,
+      fixedTimePlayback: fixedTimePlayback ? 1 : 0, // backend expects number
+      isActive: 1,
+      schedule: {
+        StartTime: startTime || null,
+        EndTime: endTime || null,
+        StartDate: startDate || null,
+        EndDate: endDate || null,
+        Days: selectedDays
+      }
     };
 
     props.saveSchedule(payload, (err) => {
@@ -337,7 +344,9 @@ const SaveScheduleDetails = (props) => {
 };
 
 const mapStateToProps = ({ root = {} }) => ({
-  root
+  // expose playlist list as `props.playlists` for the component
+  playlists:
+    (root.user && root.user.components && root.user.components.playlistList) || []
 });
 
 const mapDispatchToProps = (dispatch) => ({

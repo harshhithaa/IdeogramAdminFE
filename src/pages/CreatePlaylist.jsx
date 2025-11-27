@@ -70,7 +70,7 @@ const CreatePlaylist = (props) => {
         // unselect: move to deleted list (for edits) and remove from active
         setdeletedplaylistMedia((delPrev) => [
           ...delPrev,
-          { MediaRef: existing.MediaRef, IsActive: 0, SelectionId: existing.SelectionId }
+          { MediaRef: existing.MediaRef, IsActive: 0, SelectionId: existing.SelectionId, Duration: existing.Duration || null }
         ]);
         return prev.filter((p) => p.SelectionId !== existing.SelectionId);
       }
@@ -79,7 +79,8 @@ const CreatePlaylist = (props) => {
       setdeletedplaylistMedia((delPrev) => delPrev.filter((d) => d.MediaRef !== item.MediaRef));
       const newId = selectionCounter;
       setSelectionCounter((c) => c + 1);
-      return [...prev, { MediaRef: item.MediaRef, IsActive: 1, SelectionId: newId }];
+      // default Duration is 10 seconds on selection
+      return [...prev, { MediaRef: item.MediaRef, IsActive: 1, SelectionId: newId, Duration: 10 }];
     });
   }
 
@@ -91,11 +92,47 @@ const CreatePlaylist = (props) => {
 
       setdeletedplaylistMedia((delPrev) => [
         ...delPrev,
-        { MediaRef: toRemove.MediaRef, IsActive: 0, SelectionId: selectionId }
+        { MediaRef: toRemove.MediaRef, IsActive: 0, SelectionId: selectionId, Duration: toRemove.Duration || null }
       ]);
 
       return prev.filter((p) => p.SelectionId !== selectionId);
     });
+  }
+
+  // adjust duration (delta can be +1 / -1)
+  function adjustDuration(mediaRef, delta) {
+    setplaylistMedia((prev) =>
+      prev.map((p) => {
+        if (p.MediaRef !== mediaRef) return p;
+        let next = Number(p.Duration || 10) + delta;
+        if (next < 1) next = 1;
+        if (next > 60) next = 60; // clamp to 60
+        return { ...p, Duration: next };
+      })
+    );
+  }
+
+  function onDurationInputChange(mediaRef, value) {
+    // allow empty during typing, but sanitize on blur/save
+    let parsed = parseInt(value, 10);
+    if (isNaN(parsed)) parsed = '';
+    if (parsed !== '' && parsed > 60) parsed = 60;
+    if (parsed !== '' && parsed < 1) parsed = 1;
+    setplaylistMedia((prev) =>
+      prev.map((p) => (p.MediaRef === mediaRef ? { ...p, Duration: parsed === '' ? '' : parsed } : p))
+    );
+  }
+
+  function onDurationBlur(mediaRef) {
+    setplaylistMedia((prev) =>
+      prev.map((p) => {
+        if (p.MediaRef !== mediaRef) return p;
+        let value = Number(p.Duration || 10);
+        if (isNaN(value) || value < 1) value = 10;
+        if (value > 60) value = 60;
+        return { ...p, Duration: value };
+      })
+    );
   }
 
   function handlePriority(mediaRef) {
@@ -104,16 +141,17 @@ const CreatePlaylist = (props) => {
   }
 
   function savePlaylistDetails() {
+    // send keys that match backend validation (lowercase top-level names)
     const savePlaylistData = {
-      PlaylistName: title,
-      Description: description,
-      Playlist: [
-        ...playlistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive })),
-        ...deletedplaylistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive }))
+      playlistName: title,
+      description: description,
+      playlist: [
+        ...playlistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive, Duration: p.Duration || 10 })),
+        ...deletedplaylistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive, Duration: p.Duration || null }))
       ],
-      IsActive: 1
+      isActive: 1
     };
-    if (id !== '') savePlaylistData.PlaylistRef = id;
+    if (id !== '') savePlaylistData.playlistRef = id;
     window.scrollTo(0, 0);
     props.savePlaylist(savePlaylistData, (err) => {
       if (err && err.exists) {
@@ -349,7 +387,6 @@ const CreatePlaylist = (props) => {
                                   controls={item.MediaType !== 'image'}
                                 />
 
-                                {/* numbering is rendered inside the checked checkbox above; no separate badges */}
                                 <Box
                                   sx={{
                                     position: 'absolute',
@@ -365,6 +402,80 @@ const CreatePlaylist = (props) => {
                                   {item.MediaName || item.MediaPath || 'Untitled'}
                                 </Box>
                               </Box>
+
+                              {/* DURATION CONTROL: small translucent overlay inside the thumbnail */}
+                              {isSelected && (
+                                <Box
+                                  onClick={(e) => e.stopPropagation()}
+                                  sx={{
+                                    position: 'absolute',
+                                    bottom: 10,
+                                    left: '50%',
+                                    transform: 'translateX(-50%)',
+                                    backgroundColor: 'rgba(255,255,255,0.9)',
+                                    borderRadius: 6,
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 0.5,
+                                    p: '4px 6px',
+                                    zIndex: 30,
+                                    boxShadow: '0 6px 14px rgba(15,23,42,0.12)',
+                                    minWidth: 120,
+                                    justifyContent: 'center'
+                                  }}
+                                >
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustDuration(item.MediaRef, -1);
+                                    }}
+                                    sx={{ minWidth: 28, width: 28, height: 28, padding: 0, fontSize: 16 }}
+                                    aria-label="decrease-duration"
+                                  >
+                                    -
+                                  </Button>
+
+                                  <TextField
+                                    inputProps={{
+                                      inputMode: 'numeric',
+                                      pattern: '[0-9]*',
+                                      style: { textAlign: 'center', padding: '6px 4px' }
+                                    }}
+                                    value={
+                                      // show stored duration or default 10
+                                      (playlistMedia.find((p) => p.MediaRef === item.MediaRef) || {}).Duration ?? 10
+                                    }
+                                    onChange={(e) => onDurationInputChange(item.MediaRef, e.target.value)}
+                                    onBlur={() => onDurationBlur(item.MediaRef)}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      width: 48,
+                                      '& .MuiInputBase-root': { height: 32 },
+                                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.12)' }
+                                    }}
+                                  />
+
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      adjustDuration(item.MediaRef, +1);
+                                    }}
+                                    sx={{ minWidth: 28, width: 28, height: 28, padding: 0, fontSize: 16 }}
+                                    aria-label="increase-duration"
+                                  >
+                                    +
+                                  </Button>
+
+                                  <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
+                                    sec
+                                  </Typography>
+                                </Box>
+                              )}
                             </Box>
                           );
                         })}
