@@ -17,7 +17,8 @@ import {
   Checkbox,
   Typography,
   Tabs,
-  Tab
+  Tab,
+  SvgIcon
 } from '@mui/material';
 import { Search as SearchIcon, Trash2 as Trash2Icon } from 'react-feather';
 import { connect } from 'react-redux';
@@ -43,9 +44,11 @@ const MediaList = (props) => {
   const [pageSize, setPageSize] = useState(12);
   const [totalPages, setTotalPages] = useState(0);
   const [totalRecords, setTotalRecords] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   // Filter states
-  const [mediaTypeFilter, setMediaTypeFilter] = useState('');
+  // default to images so initial load shows image count
+  const [mediaTypeFilter, setMediaTypeFilter] = useState('image');
 
   const [box, setbox] = useState(false);
   const [boxMessage, setboxMessage] = useState('');
@@ -63,31 +66,87 @@ const MediaList = (props) => {
     try { return `${window.location.origin}/${encodeURI(p)}`; } catch (e) { return p; }
   };
 
-  const fetchMediaList = (page = currentPage, size = pageSize, search = searchQuery, mediaType = mediaTypeFilter) => {
-    const requestData = {
-      componenttype: 1,
-      searchText: search || '',
-      mediaType: mediaType || null,
-      isActive: 1,
-      userId: null,
-      pageNumber: page,
-      pageSize: size
-    };
+  const fetchMediaList = async (page = currentPage, size = pageSize, search = searchQuery, mediaType = mediaTypeFilter) => {
+    setLoading(true);
 
-    props.getUserComponentListWithPagination(requestData, (response) => {
-      if (response && !response.exists) {
-        const data = response.data || {};
-        const componentList = data.ComponentList || [];
-        const total = data.TotalRecords || 0;
-        setMedia(componentList);
-        setTotalRecords(total);
-        setTotalPages(Math.ceil(total / size));
-      } else {
-        setMedia([]);
-        setTotalRecords(0);
-        setTotalPages(0);
+    const aggregateFiltered = [];
+    let requestPage = page;
+    let reachedEnd = false;
+    let serverTotalRecords = null;
+
+    // keep fetching subsequent server pages until we have 'size' filtered items or no more server data
+    while (aggregateFiltered.length < size && !reachedEnd) {
+      const requestData = {
+        componenttype: 1,
+        searchText: search || '',
+        mediaType: mediaType || null,
+        isActive: 1,
+        userId: null,
+        pageNumber: requestPage,
+        pageSize: size // request same size from server per page
+      };
+
+      // wrap the callback-based action in a promise to use async/await
+      // eslint-disable-next-line no-await-in-loop
+      const response = await new Promise((resolve) => {
+        props.getUserComponentListWithPagination(requestData, (res) => resolve(res));
+      });
+
+      if (!response || response.exists) {
+        reachedEnd = true;
+        break;
       }
-    });
+
+      const data = response.data || {};
+      const componentList = data.ComponentList || [];
+
+      // capture server total if provided
+      if (serverTotalRecords === null && Number.isFinite(Number(data.TotalRecords))) {
+        serverTotalRecords = Number(data.TotalRecords);
+      }
+
+      // Stronger filtering to ensure GIFs don't show under IMAGES
+      const filteredPage = componentList.filter((item) => {
+        const mt = (item?.MediaType || '').toString().toLowerCase();
+        const name = (item?.MediaName || '').toString().toLowerCase();
+        const path = (item?.MediaPath || '').toString().toLowerCase();
+
+        const isGif = mt.includes('gif') || name.endsWith('.gif') || path.includes('.gif');
+        const isVideo = mt.startsWith('video') || mt.includes('video') ||
+          name.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/) || path.match(/\.(mp4|webm|ogg|mov|avi|mkv)$/);
+
+        // Debug logging - remove after fixing
+        if (name.includes('.gif')) {
+          console.log('GIF detected:', { name, mt, path, isGif, mediaType, willShow: mediaType === 'gif' ? isGif : false });
+        }
+
+        if (mediaType === 'gif') return isGif;
+        if (mediaType === 'video') return isVideo && !isGif;
+        // For images, exclude both gifs and videos
+        return !isGif && !isVideo;
+      });
+
+      aggregateFiltered.push(...filteredPage);
+
+      // if server returned fewer items than requested, we've reached the backend end
+      if (componentList.length < size) {
+        reachedEnd = true;
+      } else {
+        // prepare to fetch next server page only if needed
+        requestPage += 1;
+      }
+    }
+
+    setLoading(false);
+
+    // final displayed list: exactly 'size' items (or fewer if total available < size)
+    const finalList = aggregateFiltered.slice(0, size);
+    setMedia(finalList);
+
+    // determine totalRecords: prefer server-provided total if available, else use aggregated filtered count
+    const finalTotal = Number.isFinite(Number(serverTotalRecords)) ? serverTotalRecords : aggregateFiltered.length;
+    setTotalRecords(finalTotal);
+    setTotalPages(Math.ceil(finalTotal / size));
   };
 
   // initial load
@@ -113,6 +172,10 @@ const MediaList = (props) => {
     else if (newValue === 'IMAGES') type = 'image';
     setMediaTypeFilter(type);
     setCurrentPage(1);
+    // clear previous numbers immediately to avoid showing old counts briefly
+    setTotalRecords(0);
+    setTotalPages(0);
+    setMedia([]);
     fetchMediaList(1, pageSize, searchQuery, type);
   };
 
@@ -225,33 +288,47 @@ const MediaList = (props) => {
           </Box></Modal>
 
           {/* Top Toolbar */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-            <Box sx={{ width: '100%', maxWidth: 1400, bgcolor: '#fff', borderRadius: '8px', p: 2, boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
+          <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0 }}>
+            <Box sx={{ width: '100%', maxWidth: 1400, p: 2, bgcolor: 'transparent', borderRadius: 0, boxShadow: 'none' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
                 {/* Search Box */}
-                <TextField size="small" value={searchQuery} onChange={(e) => handleSearch(e.target.value)} placeholder="Search media"
-                  sx={{ width: 300, '& .MuiOutlinedInput-root': { bgcolor: '#fff', borderRadius: '6px' } }}
-                  InputProps={{ startAdornment: (<InputAdornment position="start"><SearchIcon size={18} color="#9ca3af" /></InputAdornment>) }} />
+                <TextField
+                  size="small"
+                  value={searchQuery}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  placeholder="Search Media"
+                  sx={{
+                    width: 220,
+                    bgcolor: 'transparent',
+                    mr: 2
+                  }}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SvgIcon fontSize="small" color="action">
+                          <SearchIcon />
+                        </SvgIcon>
+                      </InputAdornment>
+                    )
+                  }}
+                  variant="outlined"
+                  aria-label="Search media"
+                />
 
                 {/* Action Buttons */}
                 <Box sx={{ display: 'flex', gap: 1.5 }}>
-                  <Button variant="outlined" disabled={selected.length === 0} onClick={() => setModal(true)} startIcon={<Trash2Icon size={16} />}
-                    sx={{ textTransform: 'none', borderColor: '#e5e7eb', color: '#6b7280', fontWeight: 500, '&:hover': { borderColor: '#d1d5db', bgcolor: '#f9fafb' }, '&.Mui-disabled': { borderColor: '#e5e7eb', color: '#d1d5db' } }}>
-                    DELETE{selected.length > 0 ? ` (${selected.length})` : ''}
-                  </Button>
-
                   <Button variant="contained" onClick={() => navigate('/app/savemedia')}
-                    sx={{ textTransform: 'none', bgcolor: '#5b67d6', fontWeight: 600, px: 3, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#4c5bc6', boxShadow: 'none' } }}>
+                    sx={{ textTransform: 'none', bgcolor: '#5b67d6', fontWeight: 500, px: 3, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#4c5bc6', boxShadow: 'none' } }}>
                     ADD MEDIA
                   </Button>
 
                   <Button variant="contained" onClick={() => navigate('/app/createmedia')}
-                    sx={{ textTransform: 'none', bgcolor: '#5b67d6', fontWeight: 600, px: 3, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#4c5bc6', boxShadow: 'none' } }}>
+                    sx={{ textTransform: 'none', bgcolor: '#5b67d6', fontWeight: 500, px: 3, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#4c5bc6', boxShadow: 'none' } }}>
                     CREATE MEDIA
                   </Button>
 
                   <Button variant="contained" onClick={() => navigate('/app/splitmedia')}
-                    sx={{ textTransform: 'none', bgcolor: '#5b67d6', fontWeight: 600, px: 3, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#4c5bc6', boxShadow: 'none' } }}>
+                    sx={{ textTransform: 'none', bgcolor: '#5b67d6', fontWeight: 500, px: 3, borderRadius: '6px', boxShadow: 'none', '&:hover': { bgcolor: '#4c5bc6', boxShadow: 'none' } }}>
                     CREATE SPLIT SCREEN
                   </Button>
                 </Box>
@@ -261,16 +338,88 @@ const MediaList = (props) => {
 
           {/* Tabs + Grid */}
           <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-            <Box sx={{ width: '100%', maxWidth: 1400, bgcolor: '#fff', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
-              <Box sx={{ borderBottom: '1px solid #e5e7eb', px: 2, pt: 1 }}>
-                <Tabs value={activeTab} onChange={handleTabChange} sx={{ minHeight: 48, '& .MuiTabs-indicator': { height: 3, borderRadius: '3px 3px 0 0', bgcolor: '#1976d2' } }}>
-                  <Tab label="IMAGES" value="IMAGES" sx={{ textTransform: 'none', fontWeight: activeTab === 'IMAGES' ? 700 : 500, fontSize: '14px', color: activeTab === 'IMAGES' ? '#1976d2' : '#6b7280', minHeight: 48, px: 3 }} />
-                  <Tab label="VIDEOS" value="VIDEOS" sx={{ textTransform: 'none', fontWeight: activeTab === 'VIDEOS' ? 700 : 500, fontSize: '14px', color: activeTab === 'VIDEOS' ? '#1976d2' : '#6b7280', minHeight: 48, px: 3 }} />
-                  <Tab label="GIFs" value="GIFs" sx={{ textTransform: 'none', fontWeight: activeTab === 'GIFs' ? 700 : 500, fontSize: '14px', color: activeTab === 'GIFs' ? '#1976d2' : '#6b7280', minHeight: 48, px: 3 }} />
+            <Box sx={{ width: '100%', maxWidth: 1400, bgcolor: 'transparent', borderRadius: '8px', boxShadow: 'none', overflow: 'hidden' }}>
+              <Box sx={{ borderBottom: 'none', px: 2, pt: 1, display: 'flex', justifyContent: 'center', bgcolor: 'transparent' }}>
+                <Tabs
+                  value={activeTab}
+                  onChange={handleTabChange}
+                  TabIndicatorProps={{ children: <span className="MuiTabs-indicatorSpan" /> }}
+                  sx={{
+                    minHeight: 48,
+                    position: 'relative',
+                    '& .MuiTabs-flexContainer': { gap: 1, alignItems: 'center' },
+
+                    // ensure no extra background on tab buttons — only the animated indicator pill is visible
+                    '& .MuiButtonBase-root, & .MuiTab-root': {
+                      bgcolor: 'transparent !important',
+                      boxShadow: 'none !important',
+                    },
+                    // remove focus / ripple backgrounds that appear on click
+                    '& .MuiButtonBase-root.Mui-focusVisible': {
+                      bgcolor: 'transparent !important',
+                    },
+                    '& .MuiTab-root:focus': {
+                      outline: 'none',
+                      bgcolor: 'transparent !important'
+                    },
+
+                    '& .MuiTab-root': {
+                      height: 36,
+                      padding: '0 18px',
+                      borderRadius: '999px',
+                      textTransform: 'none',
+                      fontWeight: 600,
+                      fontSize: '14px',
+                      color: '#6b7280',
+                      transition: 'color 200ms ease',
+                      zIndex: 3,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    },
+
+                    '& .MuiTab-root .MuiTab-wrapper': {
+                      height: '100%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    },
+
+                    '& .MuiTab-root.Mui-selected': {
+                      bgcolor: 'transparent !important',
+                      color: '#1976d2',
+                      zIndex: 3
+                    },
+
+                    // animated pill indicator (position & size animate) — placed behind text, vertically centered
+                    '& .MuiTabs-indicator': {
+                      position: 'absolute',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      height: 36,
+                      transition: 'left 300ms cubic-bezier(0.4,0,0.2,1), width 300ms cubic-bezier(0.4,0,0.2,1)',
+                      borderRadius: '999px',
+                      zIndex: 2,
+                      backgroundColor: 'transparent',
+                      pointerEvents: 'none'
+                    },
+                    '& .MuiTabs-indicatorSpan': {
+                      display: 'block',
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: '#e3f2fd',
+                      borderRadius: '999px',
+                      boxShadow: 'none'
+                    }
+                  }}
+                >
+                  <Tab disableRipple label="IMAGES" value="IMAGES" />
+                  <Tab disableRipple label="VIDEOS" value="VIDEOS" />
+                  <Tab disableRipple label="GIFs" value="GIFs" />
                 </Tabs>
               </Box>
 
-              <Box sx={{ p: 3, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto' }}>
+              <Box sx={{ p: 3, maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', display: 'flex', flexDirection: 'column', bgcolor: '#fff', borderRadius: '0 0 8px 8px' }}>
                 {!mediaItem || mediaItem.length === 0 ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 300 }}>
                     <Typography variant="body1" color="text.secondary">No media found</Typography>
@@ -282,10 +431,23 @@ const MediaList = (props) => {
                 )}
               </Box>
 
+              {/* pagination placed just below the media grid (outside the scrollable area) */}
               {totalPages > 0 && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 3, borderTop: '1px solid #e5e7eb', gap: 2 }}>
+                <Box sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  gap: 2,
+                  mt: 1,
+                  mb: 2,
+                  // lift it a bit up so it doesn't get clipped by the viewport/footer
+                  transform: 'translateY(-8px)',
+                  zIndex: 2
+                }}>
                   <Pagination count={totalPages} page={currentPage} onChange={handlePageChange} color="primary" size="medium" showFirstButton showLastButton />
-                  <Typography variant="body2" color="text.secondary">{totalRecords} items</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {totalRecords} {activeTab === 'IMAGES' ? 'images' : activeTab === 'VIDEOS' ? 'videos' : 'gifs'}
+                  </Typography>
                 </Box>
               )}
             </Box>
