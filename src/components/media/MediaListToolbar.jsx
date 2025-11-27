@@ -1,100 +1,126 @@
-import React, { useMemo } from 'react';
-import { Box, Button, TextField, InputAdornment, SvgIcon, Tooltip } from '@mui/material';
-import { Search as SearchIcon, Trash2 as Trash2Icon } from 'react-feather';
+import React from 'react';
+import PropTypes from 'prop-types';
+import {
+  Box,
+  Button,
+  Card,
+  CardContent,
+  TextField,
+  InputAdornment,
+  SvgIcon,
+  Grid,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel
+} from '@mui/material';
+import { Search as SearchIcon } from 'react-feather';
+import { Link, useNavigate } from 'react-router-dom';
 
 const MediaListToolbar = ({ media = [], onClick, selectedItems = [], query = '', onQueryChange = () => {} }) => {
-  useMemo(() => {}, [media]);
-
-  const hasSelection = Array.isArray(selectedItems) && selectedItems.length > 0;
+  const navigate = useNavigate();
 
   return (
-    // center content and align with MediaGrid max width and padding so search lines up
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Box sx={{ width: '100%', maxWidth: 1100, px: 2 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-            {/* left: compact search matching MediaList style */}
-            <TextField
-              size="small"
-              value={query}
-              onChange={(e) => onQueryChange(e.target.value)}
-              placeholder="Search Media"
-              sx={{ width: 220 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SvgIcon fontSize="small" color="action">
-                      <SearchIcon />
-                    </SvgIcon>
-                  </InputAdornment>
-                )
-              }}
-              aria-label="Search media (quick)"
-            />
-
-            {/* right: action buttons */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              { !hasSelection ? (
-                <Tooltip title="Select media to delete" arrow>
-                  <span>
-                    <Button
-                      sx={{
-                        cursor: 'pointer',
-                        color: 'black',
-                        borderColor: 'error.main',
-                        '&:hover': { backgroundColor: 'rgba(211,47,47,0.08)' },
-                        '& .MuiSvgIcon-root': { color: 'error.main' }
-                      }}
-                      onClick={onClick}
-                      disabled={!Array.isArray(selectedItems) || selectedItems.length === 0}
-                      variant="outlined"
-                      color="error"
-                      type="button"
-                      aria-label="Delete selected media"
-                      startIcon={
-                        <SvgIcon fontSize="small">
-                          <Trash2Icon />
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          mb: 2
+        }}
+      >
+        <Button
+          color="primary"
+          variant="contained"
+          onClick={() => navigate('/app/savemedia')}
+          size="medium"
+        >
+          Add Media
+        </Button>
+      </Box>
+      <Box sx={{ mt: 3 }}>
+        <Card>
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SvgIcon fontSize="small" color="action">
+                          <SearchIcon />
                         </SvgIcon>
-                      }
-                    >
-                      Delete
-                    </Button>
-                  </span>
-                </Tooltip>
-              ) : (
-                <Button
-                  sx={{
-                    cursor: 'pointer',
-                    color: 'black',
-                    borderColor: 'error.main',
-                    '&:hover': { backgroundColor: 'rgba(211,47,47,0.08)' },
-                    '& .MuiSvgIcon-root': { color: 'error.main' }
+                      </InputAdornment>
+                    )
                   }}
-                  onClick={onClick}
-                  disabled={!Array.isArray(selectedItems) || selectedItems.length === 0}
+                  placeholder="Search media"
                   variant="outlined"
+                  value={query || ''}
+                  onChange={(e) => onQueryChange(e.target.value)}
+                />
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Media Type</InputLabel>
+                  <Select
+                    value={mediaTypeFilter}
+                    label="Media Type"
+                    onChange={(e) => onMediaTypeFilter(e.target.value)}
+                  >
+                    <MenuItem value="">All Types</MenuItem>
+                    <MenuItem value="image">Images</MenuItem>
+                    <MenuItem value="video">Videos</MenuItem>
+                    <MenuItem value="gif">GIFs</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <FormControl fullWidth>
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={activeStatusFilter}
+                    label="Status"
+                    onChange={(e) => onActiveStatusFilter(e.target.value)}
+                  >
+                    <MenuItem value="">All Status</MenuItem>
+                    <MenuItem value="1">Active</MenuItem>
+                    <MenuItem value="0">Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              <Grid item xs={12} md={2}>
+                <Button
+                  fullWidth
                   color="error"
-                  type="button"
-                  aria-label="Delete selected media"
-                  startIcon={
-                    <SvgIcon fontSize="small">
-                      <Trash2Icon />
-                    </SvgIcon>
-                  }
+                  variant="contained"
+                  disabled={!selectedItems || selectedItems.length === 0}
+                  onClick={onClick}
                 >
-                  Delete
+                  Delete ({selectedItems?.length || 0})
                 </Button>
-              )}
-              <Button color="primary" variant="contained" href="savemedia" size="medium">Add Media</Button>
-              <Button color="primary" variant="contained" href="createmedia" size="medium">Create Media</Button>
-              <Button color="primary" variant="contained" href="splitmedia" size="medium">Create Split Screen</Button>
-            </Box>
-          </Box>
-          <Box sx={{ mt: 2 }} />
-        </Box>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
       </Box>
     </Box>
   );
+};
+
+MediaListToolbar.propTypes = {
+  media: PropTypes.array,
+  selectedItems: PropTypes.array,
+  onClick: PropTypes.func,
+  query: PropTypes.string,
+  onQueryChange: PropTypes.func,
+  onMediaTypeFilter: PropTypes.func,
+  onActiveStatusFilter: PropTypes.func,
+  mediaTypeFilter: PropTypes.string,
+  activeStatusFilter: PropTypes.string
 };
 
 export default MediaListToolbar;

@@ -51,7 +51,11 @@ export default function userReducer(state = initialState, action) {
           ...state.user,
           components: {
             ...state.user.components,
-            list: action.payload,
+            list: action.payload.list || action.payload,
+            totalRecords: action.payload.totalRecords || 0,
+            pageNumber: action.payload.pageNumber || 1,
+            pageSize: action.payload.pageSize || 10,
+            totalPages: action.payload.totalPages || 0
           }
         }
       };
@@ -63,7 +67,11 @@ export default function userReducer(state = initialState, action) {
           ...state.user,
           components: {
             ...state.user.components,
-            playlistList: action.payload
+            playlistList: action.payload.list || action.payload,
+            playlistTotalRecords: action.payload.totalRecords || 0,
+            playlistPageNumber: action.payload.pageNumber || 1,
+            playlistPageSize: action.payload.pageSize || 10,
+            playlistTotalPages: action.payload.totalPages || 0
           }
         }
       };
@@ -75,7 +83,11 @@ export default function userReducer(state = initialState, action) {
           ...state.user,
           components: {
             ...state.user.components,
-            mediaList: action.payload
+            mediaList: action.payload.list || action.payload,
+            mediaTotalRecords: action.payload.totalRecords || 0,
+            mediaPageNumber: action.payload.pageNumber || 1,
+            mediaPageSize: action.payload.pageSize || 10,
+            mediaTotalPages: action.payload.totalPages || 0
           }
         }
       };
@@ -87,7 +99,11 @@ export default function userReducer(state = initialState, action) {
           ...state.user,
           components: {
             ...state.user.components,
-            scheduleList: action.payload
+            scheduleList: action.payload.list || action.payload,
+            scheduleTotalRecords: action.payload.totalRecords || 0,
+            schedulePageNumber: action.payload.pageNumber || 1,
+            schedulePageSize: action.payload.pageSize || 10,
+            scheduleTotalPages: action.payload.totalPages || 0
           }
         }
       };
@@ -118,7 +134,6 @@ export default function userReducer(state = initialState, action) {
         }
       };
     }
-
     case GETUSERPLAYLISTDETAILS: {
       return {
         ...state,

@@ -120,6 +120,95 @@ export const getUserComponentList = (data, callback) => (dispatch) => {
   }
 };
 
+// Add new action for paginated list
+export const getUserComponentListWithPagination = (data, callback) => (dispatch) => {
+  const token = store.getState().root.user.accesstoken;
+  try {
+    return Api.get('/admin/componentlistpaginated', {
+      params: data,
+      headers: {
+        AuthToken: token
+      }
+    })
+      .then((res) => {
+        if (!res.data.Error) {
+          const dataObj = res.data.Details;
+          console.log('getUserComponentListWithPagination', dataObj);
+
+          // Dispatch based on component type with pagination data
+          if (data.componenttype === COMPONENTS.Monitor) {
+            dispatch({
+              type: GETUSERCOMPONENTLIST,
+              payload: {
+                list: dataObj.ComponentList,
+                totalRecords: dataObj.TotalRecords,
+                pageNumber: dataObj.PageNumber,
+                pageSize: dataObj.PageSize,
+                totalPages: dataObj.TotalPages
+              }
+            });
+          } else if (data.componenttype === COMPONENTS.Playlist) {
+            dispatch({
+              type: GETUSERPLAYLISTLIST,
+              payload: {
+                list: dataObj.ComponentList,
+                totalRecords: dataObj.TotalRecords,
+                pageNumber: dataObj.PageNumber,
+                pageSize: dataObj.PageSize,
+                totalPages: dataObj.TotalPages
+              }
+            });
+          } else if (data.componenttype === COMPONENTS.Schedule) {
+            dispatch({
+              type: GETUSERSCHEDULELIST,
+              payload: {
+                list: dataObj.ComponentList,
+                totalRecords: dataObj.TotalRecords,
+                pageNumber: dataObj.PageNumber,
+                pageSize: dataObj.PageSize,
+                totalPages: dataObj.TotalPages
+              }
+            });
+          } else if (data.componenttype === COMPONENTS.Media) {
+            dispatch({
+              type: GETUSERMEDIALIST,
+              payload: {
+                list: dataObj.ComponentList,
+                totalRecords: dataObj.TotalRecords,
+                pageNumber: dataObj.PageNumber,
+                pageSize: dataObj.PageSize,
+                totalPages: dataObj.TotalPages
+              }
+            });
+          }
+
+          if (typeof callback === 'function') callback({ exists: false, data: dataObj });
+          return dataObj;
+        }
+
+        if (res.data.Error.ErrorCode === ErrorCode.Invalid_User_Credentials) {
+          dispatch({
+            type: STOREUSER,
+            payload: {
+              valid: false,
+              accesstoken: null
+            }
+          });
+        }
+        if (typeof callback === 'function') callback({ exists: true, errmessage: res.data.Error.ErrorMessage });
+        return Promise.reject(res.data.Error);
+      })
+      .catch((err) => {
+        console.error('getUserComponentListWithPagination error:', err);
+        if (typeof callback === 'function') callback({ exists: true, err: err });
+        throw err;
+      });
+  } catch (err) {
+    if (typeof callback === 'function') callback({ exists: true, err });
+    return Promise.reject(err);
+  }
+};
+
 export const savePlaylist = (data, callback) => (dispatch) => {
   const token = store.getState().root.user.accesstoken;
   try {
