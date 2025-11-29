@@ -429,22 +429,38 @@ const MediaList = (props) => {
                     {mediaItem.map((item) => renderMediaCard(item))}
                   </Box>
                 )}
+
+                {/* media grid ends here - pagination is moved outside the scrollable area below */}
               </Box>
 
-              {/* pagination placed just below the media grid (outside the scrollable area) */}
-              {totalPages > 0 && (
-                <Box sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  gap: 2,
-                  mt: 1,
-                  mb: 2,
-                  // lift it a bit up so it doesn't get clipped by the viewport/footer
-                  transform: 'translateY(-8px)',
-                  zIndex: 2
-                }}>
-                  <Pagination count={totalPages} page={currentPage} onChange={handlePageChange} color="primary" size="medium" showFirstButton showLastButton />
+              {/* Pagination moved OUTSIDE the scrollable media area so it does NOT scroll with the grid */}
+              {(mediaItem.length > 0 || totalPages > 0) && (
+                <Box
+                  id="media-list-pagination"
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: 2,
+                    mt: 1,
+                    mb: 3,
+                    zIndex: 1200,
+                    bgcolor: 'background.paper',
+                    py: 1,
+                    px: 1,
+                    borderRadius: 1,
+                    boxShadow: '0 6px 18px rgba(0,0,0,0.06)'
+                  }}
+                >
+                  <Pagination
+                    count={Math.max(1, totalPages)}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                    size="medium"
+                    showFirstButton
+                    showLastButton
+                  />
                   <Typography variant="body2" color="text.secondary">
                     {totalRecords} {activeTab === 'IMAGES' ? 'images' : activeTab === 'VIDEOS' ? 'videos' : 'gifs'}
                   </Typography>

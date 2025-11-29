@@ -8,7 +8,7 @@ import { Formik } from 'formik';
 import React, { useState, useEffect } from 'react';
 import CardMedia from '@mui/material/CardMedia';
 import { Alert, Stack, Checkbox } from '@mui/material';
-import { Box, Button, Container, TextField, Typography, Grid, MenuItem, Select, FormControl, InputLabel, IconButton } from '@mui/material';
+import { Box, Button, Container, TextField, Typography, Grid, MenuItem, Select, FormControl, InputLabel, IconButton, Pagination } from '@mui/material';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -63,11 +63,21 @@ const CreatePlaylist = (props) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRefs, setSelectedRefs] = useState([]); // keep simple array for MediaGrid
 
+  // derived pagination count (fallback to media length if backend doesn't send total)
+  const pageCount = totalRecords && Number(totalRecords) > 0
+    ? Math.ceil(Number(totalRecords) / pageSize)
+    : Math.max(1, Math.ceil((media && media.length) / pageSize));
+  // quick debug output in console to diagnose missing numbers
+  // (remove after confirming)
+  // eslint-disable-next-line no-console
+  console.debug('CreatePlaylist pagination:', { currentPage, pageSize, totalRecords, mediaLength: media.length, pageCount });
+
   // fetch paginated media (re-uses server paginated endpoint used by media page)
   const fetchMedia = (page = currentPage, size = pageSize, mediaType = mediaTypeFilter, search = searchQuery) => {
     setLoading(true);
     const requestData = {
-      componentType: COMPONENTS.Media,
+      // backend expects lowercase 'componenttype'
+      componenttype: COMPONENTS.Media,
       pageNumber: page,
       pageSize: size,
       mediaType: mediaType,
@@ -443,14 +453,27 @@ const CreatePlaylist = (props) => {
                     {/* Reuse MediaGrid (same component used on Media page) */}
                     <MediaGrid media={media} setselected={onGridSelectionChange} selected={selectedRefs} />
 
-                    {/* simple footer pagination controls (you can swap for MUI/Pagination component) */}
-                    <Box sx={{ gridColumn: '1/-1', mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                      <Button disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>Prev</Button>
-                      <Typography variant="body2">Page {currentPage} — {totalRecords} items</Typography>
-                      <Button disabled={(currentPage * pageSize) >= totalRecords} onClick={() => setCurrentPage((p) => p + 1)}>Next</Button>
-                    </Box>
+                    {/* pagination moved outside the panel to avoid being overlapped by media */}
                    </Box>
                  </Box>
+
+                {/* Pagination footer moved outside the media panel so it stays visible */}
+                <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, zIndex: 10 }}>
+                  <Button disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>Prev</Button>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Typography variant="body2">Page {currentPage} of {pageCount}</Typography>
+                    <Pagination
+                      count={pageCount}
+                      page={currentPage}
+                      onChange={(e, value) => setCurrentPage(value)}
+                      color="primary"
+                      size="small"
+                    />
+                    <Typography variant="caption" sx={{ ml: 1 }}>({currentPage}/{pageCount})</Typography>
+                    <Typography variant="body2">{totalRecords} items</Typography>
+                  </Box>
+                  <Button disabled={(currentPage * pageSize) >= totalRecords} onClick={() => setCurrentPage((p) => p + 1)}>Next</Button>
+                </Box>
 
                 {/* Selection summary / badges with duration controls */}
                 <Box sx={{ mt: 1, mb: 1 }}>
