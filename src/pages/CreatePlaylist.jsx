@@ -8,10 +8,14 @@ import { Formik } from 'formik';
 import React, { useState, useEffect } from 'react';
 import CardMedia from '@mui/material/CardMedia';
 import { Alert, Stack, Checkbox } from '@mui/material';
-import { Box, Button, Container, TextField, Typography, Grid } from '@mui/material';
+import { Box, Button, Container, TextField, Typography, Grid, MenuItem, Select, FormControl, InputLabel, IconButton } from '@mui/material';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { connect } from 'react-redux';
 import { COMPONENTS } from 'src/utils/constant.jsx';
-import { getUserComponentList, savePlaylist } from '../store/action/user';
+import MediaGrid from 'src/components/media/MediaGrid';
+import { getUserComponentListWithPagination, savePlaylist } from '../store/action/user';
 
 const CreatePlaylist = (props) => {
   const navigate = useNavigate();
@@ -40,27 +44,122 @@ const CreatePlaylist = (props) => {
   const [boxMessage, setboxMessage] = useState('');
   const [color, setcolor] = useState('success');
 
+  // Duration controls
+  const [durationMode, setDurationMode] = useState('Default'); // 'Default' | 'Custom'
+  const [defaultDuration, setDefaultDuration] = useState(10); // 5..60
+
   // visual constants matched to Media page
   const panelBg = 'rgba(25,118,210,0.03)';
   const panelRadius = 8;
   const panelBorder = 'rgba(0,0,0,0.02)';
   const cardBorder = 'rgba(0,0,0,0.06)';
 
-  useEffect(() => {
-    const data = { componenttype: COMPONENTS.Media };
+  // pagination / tab (image / video) like Media page
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [totalRecords, setTotalRecords] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const [mediaTypeFilter, setMediaTypeFilter] = useState('image'); // images by default
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedRefs, setSelectedRefs] = useState([]); // keep simple array for MediaGrid
 
-    props.getUserComponentList(data, (err) => {
-      if (err && err.exists) {
-        console.log('err.errmessage', err.errmessage);
-      } else {
-        setMedia(component ? component.mediaList || [] : []);
-        setloader(true);
+  // fetch paginated media (re-uses server paginated endpoint used by media page)
+  const fetchMedia = (page = currentPage, size = pageSize, mediaType = mediaTypeFilter, search = searchQuery) => {
+    setLoading(true);
+    const requestData = {
+      componentType: COMPONENTS.Media,
+      pageNumber: page,
+      pageSize: size,
+      mediaType: mediaType,
+      searchText: search,
+      isActive: 1,
+      userId: null
+    };
+
+    props.getUserComponentListWithPagination(requestData, (res) => {
+      setLoading(false);
+      if (!res || res.exists) {
+        setMedia([]);
+        setMediaData([]);
+        setTotalRecords(0);
+        return;
       }
+      const list = (res.data && res.data.ComponentList) || [];
+      // try to get total records from first row if SP returned it per-row
+      const total = (list.length && list[0].TotalRecords) ? Number(list[0].TotalRecords) : (res.data && res.data.TotalRecords) || 0;
+      setMedia(list);
+      setMediaData(list);
+      setTotalRecords(total);
+      // keep playlistMedia unchanged - no preselection
     });
+  };
 
-    setMediaData(media);
-    setplaylistMedia([]); // do not preselect
-  }, [loader]);
+  // initial load & when filters change
+  useEffect(() => {
+    fetchMedia(1, pageSize, mediaTypeFilter, '');
+    setCurrentPage(1);
+    // reset selections in the grid when changing tab
+    setSelectedRefs([]);
+  }, [mediaTypeFilter]);
+
+  useEffect(() => {
+    fetchMedia(currentPage, pageSize, mediaTypeFilter, searchQuery);
+  }, [currentPage, pageSize, searchQuery]);
+
+  // Helper: determine if a mediaRef corresponds to a video
+  const isVideoRef = (mediaRef) => {
+    const item = mediaData.find((m) => m.MediaRef === mediaRef);
+    if (!item) return false;
+    // check various common fields
+    const mm = (item.fileMimetype || item.FileMimetype || item.FileType || item.MediaType || '').toString().toLowerCase();
+    if (mm.includes('video')) return true;
+    if (mm.includes('image')) return false;
+    // fallback: try extension in file url
+    const url = (item.fileUrl || item.FileUrl || item.FileURL || '').toString().toLowerCase();
+    if (url.match(/\.(mp4|mov|webm|mkv)$/)) return true;
+    return false;
+  };
+
+  // When MediaGrid selection changes (it returns array of MediaRef strings)
+  const onGridSelectionChange = (newSelected) => {
+    // compute additions and removals relative to selectedRefs
+    const added = newSelected.filter((r) => !selectedRefs.includes(r));
+    const removed = selectedRefs.filter((r) => !newSelected.includes(r));
+
+    // add newly selected items to playlistMedia with defaults
+    if (added.length) {
+      setplaylistMedia((prev) => {
+        let next = [...prev];
+        added.forEach((ref) => {
+          if (!next.find((p) => p.MediaRef === ref)) {
+            const newSelId = selectionCounter;
+            const isVideo = isVideoRef(ref);
+            const durationForNew = isVideo ? null : (durationMode === 'Default' ? Number(defaultDuration) : 10);
+            next.push({ MediaRef: ref, IsActive: 1, SelectionId: newSelId, Duration: durationForNew });
+            setSelectionCounter((c) => c + 1);
+          }
+        });
+        return next;
+      });
+    }
+
+    // for removals, move them to deleted list (to preserve edit behavior)
+    if (removed.length) {
+      setplaylistMedia((prev) => {
+        let next = [...prev];
+        removed.forEach((ref) => {
+          const idx = next.findIndex((p) => p.MediaRef === ref);
+          if (idx !== -1) {
+            const [item] = next.splice(idx, 1);
+            setdeletedplaylistMedia((d) => [...d, { MediaRef: item.MediaRef, IsActive: 0, SelectionId: item.SelectionId, Duration: item.Duration || null }]);
+          }
+        });
+        return next;
+      });
+    }
+
+    setSelectedRefs(newSelected);
+  };
 
   // Toggle selection: only one selection per media allowed.
   function handleSelectPlaylist(item) {
@@ -72,6 +171,7 @@ const CreatePlaylist = (props) => {
           ...delPrev,
           { MediaRef: existing.MediaRef, IsActive: 0, SelectionId: existing.SelectionId, Duration: existing.Duration || null }
         ]);
+        setSelectedRefs((s) => s.filter((r) => r !== item.MediaRef));
         return prev.filter((p) => p.SelectionId !== existing.SelectionId);
       }
 
@@ -79,8 +179,11 @@ const CreatePlaylist = (props) => {
       setdeletedplaylistMedia((delPrev) => delPrev.filter((d) => d.MediaRef !== item.MediaRef));
       const newId = selectionCounter;
       setSelectionCounter((c) => c + 1);
-      // default Duration is 10 seconds on selection
-      return [...prev, { MediaRef: item.MediaRef, IsActive: 1, SelectionId: newId, Duration: 10 }];
+      const isVideo = isVideoRef(item.MediaRef);
+      const durationForNew = isVideo ? null : (durationMode === 'Default' ? Number(defaultDuration) : 10);
+      setSelectedRefs((s) => [...s, item.MediaRef]);
+      // default Duration based on mode
+      return [...prev, { MediaRef: item.MediaRef, IsActive: 1, SelectionId: newId, Duration: durationForNew }];
     });
   }
 
@@ -95,15 +198,18 @@ const CreatePlaylist = (props) => {
         { MediaRef: toRemove.MediaRef, IsActive: 0, SelectionId: selectionId, Duration: toRemove.Duration || null }
       ]);
 
+      setSelectedRefs((s) => s.filter((r) => r !== toRemove.MediaRef));
       return prev.filter((p) => p.SelectionId !== selectionId);
     });
   }
 
-  // adjust duration (delta can be +1 / -1)
+  // adjust duration (delta can be +1 / -1) for images only
   function adjustDuration(mediaRef, delta) {
     setplaylistMedia((prev) =>
       prev.map((p) => {
         if (p.MediaRef !== mediaRef) return p;
+        // skip videos
+        if (isVideoRef(mediaRef)) return p;
         let next = Number(p.Duration || 10) + delta;
         if (next < 1) next = 1;
         if (next > 60) next = 60; // clamp to 60
@@ -127,6 +233,8 @@ const CreatePlaylist = (props) => {
     setplaylistMedia((prev) =>
       prev.map((p) => {
         if (p.MediaRef !== mediaRef) return p;
+        // videos should keep null
+        if (isVideoRef(mediaRef)) return p;
         let value = Number(p.Duration || 10);
         if (isNaN(value) || value < 1) value = 10;
         if (value > 60) value = 60;
@@ -140,13 +248,31 @@ const CreatePlaylist = (props) => {
     return priorityIndex > 0 ? priorityIndex : '';
   }
 
+  // When defaultDuration changes and mode is Default — apply to all images in playlist
+  useEffect(() => {
+    if (durationMode !== 'Default') return;
+    setplaylistMedia((prev) => prev.map((p) => (isVideoRef(p.MediaRef) ? { ...p, Duration: null } : { ...p, Duration: Number(defaultDuration) })));
+  }, [defaultDuration, durationMode]); // eslint-disable-line
+
   function savePlaylistDetails() {
+    // before save: sanitize durations (set numeric defaults for images, null for videos)
+    const sanitizedPlaylist = playlistMedia.map((p) => {
+      const isVideo = isVideoRef(p.MediaRef);
+      let dur = p.Duration;
+      if (isVideo) dur = null;
+      else {
+        const n = Number(dur || (durationMode === 'Default' ? defaultDuration : 10));
+        dur = isNaN(n) ? 10 : Math.min(60, Math.max(1, n));
+      }
+      return { MediaRef: p.MediaRef, IsActive: p.IsActive, Duration: dur };
+    });
+
     // send keys that match backend validation (lowercase top-level names)
     const savePlaylistData = {
       playlistName: title,
       description: description,
       playlist: [
-        ...playlistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive, Duration: p.Duration || 10 })),
+        ...sanitizedPlaylist,
         ...deletedplaylistMedia.map((p) => ({ MediaRef: p.MediaRef, IsActive: p.IsActive, Duration: p.Duration || null }))
       ],
       isActive: 1
@@ -205,8 +331,8 @@ const CreatePlaylist = (props) => {
                     {type} Playlist
                   </Typography>
 
-                  <Grid container spacing={1}>
-                    <Grid item xs={12} md={6}>
+                  <Grid container spacing={1} alignItems="center">
+                    <Grid item xs={12} md={4}>
                       <TextField
                         error={Boolean(touched.title && errors.title)}
                         fullWidth
@@ -223,7 +349,7 @@ const CreatePlaylist = (props) => {
                       />
                     </Grid>
 
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12} md={4}>
                       <TextField
                         error={Boolean(touched.description && errors.description)}
                         fullWidth
@@ -238,6 +364,40 @@ const CreatePlaylist = (props) => {
                         InputLabelProps={{ sx: { color: 'text.primary', fontWeight: 550, fontSize: '1rem' } }}
                         sx={{ '& .MuiInputBase-input': { color: 'text.primary', fontSize: '1rem', lineHeight: 1.2 }, mt: 0.5 }}
                       />
+                    </Grid>
+
+                    {/* Duration mode controls */}
+                    <Grid item xs={12} md={4}>
+                      <FormControl fullWidth size="small" margin="dense">
+                        <InputLabel id="duration-mode-label">Duration Mode</InputLabel>
+                        <Select
+                          labelId="duration-mode-label"
+                          value={durationMode}
+                          label="Duration Mode"
+                          onChange={(e) => setDurationMode(e.target.value)}
+                        >
+                          <MenuItem value="Default">Default</MenuItem>
+                          <MenuItem value="Custom">Custom</MenuItem>
+                        </Select>
+                      </FormControl>
+
+                      {durationMode === 'Default' && (
+                        <FormControl fullWidth size="small" margin="dense">
+                          <InputLabel id="default-duration-label">Default (images)</InputLabel>
+                          <Select
+                            labelId="default-duration-label"
+                            value={defaultDuration}
+                            label="Default (images)"
+                            onChange={(e) => setDefaultDuration(Number(e.target.value))}
+                            sx={{ mt: 0.5 }}
+                          >
+                            {Array.from({ length: 12 }).map((_, i) => {
+                              const val = (i + 1) * 5;
+                              return <MenuItem key={val} value={val}>{val} sec</MenuItem>;
+                            })}
+                          </Select>
+                        </FormControl>
+                      )}
                     </Grid>
                   </Grid>
                 </Box>
@@ -262,227 +422,80 @@ const CreatePlaylist = (props) => {
                     /* allow the panel to size within the page so footer stays visible */
                     minHeight: 'auto'
                   }}>
-                    {/* internal grid uses same columns/spacing as Media page */}
-                    <Box
-                      sx={{
-                        display: 'grid',
-                        gridTemplateColumns: {
-                          xs: 'repeat(2, 1fr)',
-                          sm: 'repeat(3, 1fr)',
-                          md: 'repeat(4, 1fr)',
-                          lg: 'repeat(5, 1fr)'
-                        },
-                        gap: 1, /* keep existing grid spacing and per-item sizes */
-                        width: '100%',
-                        boxSizing: 'border-box',
-                        /* keep a generous visible area but allow internal scrolling */
-                        maxHeight: { xs: '46vh', sm: '48vh', md: '54vh', lg: '58vh' },
-                        overflowY: 'auto',
-                        pr: 1
-                      }}
-                    >
-                      {Array.isArray(media) && media.length === 0 && (
-                        <Box sx={{ gridColumn: '1/-1', textAlign: 'center', color: 'text.secondary', p: 4 }}>
-                          No media uploaded.
-                        </Box>
-                      )}
-
-                      {Array.isArray(media) &&
-                        media.map((item) => {
-                          const selectionsForMedia = playlistMedia.filter((s) => s.MediaRef === item.MediaRef);
-                          const isSelected = selectionsForMedia.length > 0;
-                          const orderNumber = isSelected ? (playlistMedia.findIndex((p) => p.MediaRef === item.MediaRef) + 1) : null;
-
-                          return (
-                            <Box
-                              key={item.MediaRef || item.MediaPath}
-                              sx={{
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: 0.5,
-                                width: '100%',
-                                maxWidth: 180,
-                                minWidth: 0,
-                                aspectRatio: '1 / 1',
-                                justifySelf: 'center'
-                              }}
-                            >
-                              <Box
-                                component="button"
-                                type="button"
-                                onClick={() => handleSelectPlaylist(item)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') handleSelectPlaylist(item);
-                                }}
-                                sx={{
-                                  width: '100%',
-                                  aspectRatio: '1 / 1',
-                                  position: 'relative',
-                                  borderRadius: `${panelRadius}px`,
-                                  overflow: 'hidden',
-                                  border: (theme) => `1px solid ${cardBorder}`,
-                                  cursor: 'pointer',
-                                  backgroundColor: 'background.paper',
-                                  padding: 0,
-                                  textAlign: 'left',
-                                  boxShadow: isSelected ? '0 8px 22px rgba(25,118,210,0.12)' : 'none',
-                                  transition: 'transform 150ms ease, box-shadow 150ms ease',
-                                  '&:hover': { transform: 'translateY(-4px)' }
-                                }}
-                              >
-                                <Checkbox
-                                  checked={isSelected}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleSelectPlaylist(item);
-                                  }}
-                                  onChange={() => {}}
-                                  icon={
-                                    <Box
-                                      sx={{
-                                        width: 22,
-                                        height: 22,
-                                        borderRadius: 0,
-                                        border: '2px solid rgba(255,255,255,0.85)',
-                                        backgroundColor: 'rgba(255,255,255,0.08)'
-                                      }}
-                                    />
-                                  }
-                                  checkedIcon={
-                                    <Box
-                                      sx={(theme) => ({
-                                        width: 22,
-                                        height: 22,
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontWeight: 700,
-                                        fontSize: 12,
-                                        color: '#fff',
-                                        borderRadius: 0,
-                                        backgroundColor: theme.palette.primary.main,
-                                        border: `2px solid ${theme.palette.primary.main}`
-                                      })}
-                                    >
-                                      {orderNumber}
-                                    </Box>
-                                  }
-                                  sx={{ position: 'absolute', left: 8, top: 8, zIndex: 20, padding: 0 }}
-                                />
-
-                                <CardMedia
-                                  component={item.MediaType === 'image' ? 'img' : 'video'}
-                                  src={item.MediaPath}
-                                  alt={item.MediaName || ''}
-                                  sx={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover',
-                                    display: 'block',
-                                    pointerEvents: 'none',
-                                    aspectRatio: '1 / 1',
-                                    minHeight: 0,
-                                    minWidth: 0
-                                  }}
-                                  controls={item.MediaType !== 'image'}
-                                />
-
-                                <Box
-                                  sx={{
-                                    position: 'absolute',
-                                    left: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    p: '8px',
-                                    background: 'rgba(0,0,0,0.65)',
-                                    color: '#fff',
-                                    fontSize: 13
-                                  }}
-                                >
-                                  {item.MediaName || item.MediaPath || 'Untitled'}
-                                </Box>
-                              </Box>
-
-                              {/* DURATION CONTROL: small translucent overlay inside the thumbnail */}
-                              {isSelected && (
-                                <Box
-                                  onClick={(e) => e.stopPropagation()}
-                                  sx={{
-                                    position: 'absolute',
-                                    bottom: 10,
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    backgroundColor: 'rgba(255,255,255,0.9)',
-                                    borderRadius: 6,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: 0.5,
-                                    p: '4px 6px',
-                                    zIndex: 30,
-                                    boxShadow: '0 6px 14px rgba(15,23,42,0.12)',
-                                    minWidth: 120,
-                                    justifyContent: 'center'
-                                  }}
-                                >
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      adjustDuration(item.MediaRef, -1);
-                                    }}
-                                    sx={{ minWidth: 28, width: 28, height: 28, padding: 0, fontSize: 16 }}
-                                    aria-label="decrease-duration"
-                                  >
-                                    -
-                                  </Button>
-
-                                  <TextField
-                                    inputProps={{
-                                      inputMode: 'numeric',
-                                      pattern: '[0-9]*',
-                                      style: { textAlign: 'center', padding: '6px 4px' }
-                                    }}
-                                    value={
-                                      // show stored duration or default 10
-                                      (playlistMedia.find((p) => p.MediaRef === item.MediaRef) || {}).Duration ?? 10
-                                    }
-                                    onChange={(e) => onDurationInputChange(item.MediaRef, e.target.value)}
-                                    onBlur={() => onDurationBlur(item.MediaRef)}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{
-                                      width: 48,
-                                      '& .MuiInputBase-root': { height: 32 },
-                                      '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.12)' }
-                                    }}
-                                  />
-
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      adjustDuration(item.MediaRef, +1);
-                                    }}
-                                    sx={{ minWidth: 28, width: 28, height: 28, padding: 0, fontSize: 16 }}
-                                    aria-label="increase-duration"
-                                  >
-                                    +
-                                  </Button>
-
-                                  <Typography variant="caption" sx={{ color: 'text.secondary', ml: 0.5 }}>
-                                    sec
-                                  </Typography>
-                                </Box>
-                              )}
-                            </Box>
-                          );
-                        })}
+                    {/* Tabs for Images / Videos like Media page */}
+                    <Box sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                      <Button variant={mediaTypeFilter === 'image' ? 'contained' : 'outlined'} onClick={() => { setMediaTypeFilter('image'); }}>
+                        IMAGES
+                      </Button>
+                      <Button variant={mediaTypeFilter === 'video' ? 'contained' : 'outlined'} onClick={() => { setMediaTypeFilter('video'); }}>
+                        VIDEOS
+                      </Button>
+                      <Box sx={{ flex: 1 }} />
+                      <TextField
+                        size="small"
+                        placeholder="Search media"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        sx={{ width: 240 }}
+                      />
                     </Box>
 
-                    {/* removed absolute-positioned duplicate button so the single existing button below is used */}
-                  </Box>
+                    {/* Reuse MediaGrid (same component used on Media page) */}
+                    <MediaGrid media={media} setselected={onGridSelectionChange} selected={selectedRefs} />
+
+                    {/* simple footer pagination controls (you can swap for MUI/Pagination component) */}
+                    <Box sx={{ gridColumn: '1/-1', mt: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                      <Button disabled={currentPage <= 1} onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}>Prev</Button>
+                      <Typography variant="body2">Page {currentPage} — {totalRecords} items</Typography>
+                      <Button disabled={(currentPage * pageSize) >= totalRecords} onClick={() => setCurrentPage((p) => p + 1)}>Next</Button>
+                    </Box>
+                   </Box>
+                 </Box>
+
+                {/* Selection summary / badges with duration controls */}
+                <Box sx={{ mt: 1, mb: 1 }}>
+                  <Typography variant="h6" sx={{ mb: 1 }}>Selected items ({playlistMedia.length})</Typography>
+                  <Grid container spacing={1}>
+                    {playlistMedia.map((p, idx) => {
+                      const mediaItem = mediaData.find(m => m.MediaRef === p.MediaRef) || {};
+                      const isVideo = isVideoRef(p.MediaRef);
+                      return (
+                        <Grid item xs={12} md={6} key={p.SelectionId}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, border: `1px solid ${cardBorder}`, p: 1, borderRadius: 1 }}>
+                            <Box sx={{ width: 56, height: 56, borderRadius: 1, overflow: 'hidden', background: '#fff' }}>
+                              {mediaItem.fileUrl ? <CardMedia component="img" image={mediaItem.fileUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <Box sx={{ width: '100%', height: '100%', background: '#eee' }} />}
+                            </Box>
+
+                            <Box sx={{ flex: 1 }}>
+                              <Typography sx={{ fontWeight: 700 }}>{mediaItem.FileName || mediaItem.fileName || mediaItem.Name || mediaItem.Title || p.MediaRef}</Typography>
+                              <Typography variant="caption">Priority: {idx + 1} — {isVideo ? 'Video (full length)' : `Image`}</Typography>
+                            </Box>
+
+                            {/* duration controls (images only) */}
+                            {!isVideo ? (
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                <IconButton size="small" onClick={() => adjustDuration(p.MediaRef, -1)}><RemoveIcon fontSize="small" /></IconButton>
+                                <TextField
+                                  size="small"
+                                  value={p.Duration === '' ? '' : (p.Duration || 10)}
+                                  onChange={(e) => onDurationInputChange(p.MediaRef, e.target.value)}
+                                  onBlur={() => onDurationBlur(p.MediaRef)}
+                                  inputProps={{ style: { width: 44, textAlign: 'center' } }}
+                                />
+                                <IconButton size="small" onClick={() => adjustDuration(p.MediaRef, +1)}><AddIcon fontSize="small" /></IconButton>
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" sx={{ color: 'text.secondary', mr: 1 }}>Plays full video</Typography>
+                            )}
+
+                            <IconButton color="error" onClick={() => removeSelection(p.SelectionId)}>
+                              <RemoveCircleOutlineIcon />
+                            </IconButton>
+                          </Box>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
                 </Box>
  
                 {/* existing primary action kept here — fully outside the media panel, non-overlapping */}
@@ -506,7 +519,7 @@ const mapStateToProps = ({ root = {} }) => {
 };
 
 const mapDispatchToProps = (dispatch) => ({
-  getUserComponentList: (data, callback) => dispatch(getUserComponentList(data, callback)),
+  getUserComponentListWithPagination: (data, callback) => dispatch(getUserComponentListWithPagination(data, callback)),
   savePlaylist: (data, callback) => dispatch(savePlaylist(data, callback))
 });
 
